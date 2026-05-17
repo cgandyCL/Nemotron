@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<title>Mnemosyne Memory v3</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #07090b;
+    --surface: rgba(16, 21, 24, 0.7);
+    --surface-2: rgba(255, 255, 255, 0.07);
+    --surface-3: rgba(255, 255, 255, 0.11);
+    --field: rgba(2, 7, 9, 0.48);
+    --ink: #edf7f4;
+    --muted: #91a6a5;
+    --line: rgba(255, 255, 255, 0.14);
+    --line-strong: rgba(255, 255, 255, 0.26);
+    --accent: #3ee6c6;
+    --accent-dark: #1ab297;
+    --accent-ink: #031816;
+    --warn: #f7c75f;
+    --danger: #ff6b6b;
+    --good: #49d985;
+    --sidebar: rgba(7, 12, 14, 0.72);
+    --sidebar-2: rgba(12, 18, 20, 0.66);
+    --sidebar-text: #edf7f4;
+    --focus: 0 0 0 3px rgba(62, 230, 198, 0.22);
+    --shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+  }
+
+  body {
+    background: linear-gradient(135deg, #07090b 0%, #0f1412 42%, #111014 100%);
+    color: var(--ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+    letter-spacing: 0;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 38px 38px;
+    opacity: 0.55;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(120deg, rgba(62, 230, 198, 0.12), transparent 30%, rgba(240, 168, 77, 0.08) 70%, transparent);
+    mix-blend-mode: screen;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(62, 230, 198, 0.46) rgba(255, 255, 255, 0.05);
+  }
+
+  ::selection {
+    background: rgba(62, 230, 198, 0.34);
+    color: #fff;
+  }
+
+  button {
+    white-space: nowrap;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: auto;
+    background: linear-gradient(180deg, var(--sidebar), var(--sidebar-2));
+    border-right: 1px solid var(--line);
+    box-shadow: 14px 0 54px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(24px) saturate(130%);
+    color: var(--sidebar-text);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .workspace {
+    padding: 18px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .brand h1,
+  .page-title h1 {
+    margin: 0;
+    font-size: 1.18rem;
+    line-height: 1.15;
+    letter-spacing: 0;
+    font-weight: 800;
+  }
+
+  .brand h1::before {
+    content: "";
+    display: block;
+    width: 42px;
+    height: 3px;
+    margin-bottom: 9px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), #f0a84d);
+  }
+
+  .brand .subtle,
+  .page-title .subtle {
+    margin: 4px 0 0;
+  }
+
+  .subtle {
+    color: var(--muted);
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+
+  .sidebar .subtle {
+    color: rgba(247, 244, 234, 0.66);
+  }
+
+  .version-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    border: 1px solid rgba(62, 230, 198, 0.38);
+    border-radius: 999px;
+    background: rgba(62, 230, 198, 0.12);
+    color: var(--accent);
+    padding: 4px 9px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .link-btn,
+  .btn {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    min-height: 38px;
+    padding: 8px 11px;
+    cursor: pointer;
+    background: var(--surface-2);
+    color: var(--ink);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 750;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  }
+
+  .btn:hover,
+  .link-btn:hover {
+    transform: translateY(-1px);
+    border-color: var(--line-strong);
+    background: var(--surface-3);
+  }
+
+  .btn.primary {
+    background: linear-gradient(180deg, rgba(62, 230, 198, 0.98), rgba(26, 178, 151, 0.94));
+    border-color: rgba(62, 230, 198, 0.72);
+    color: var(--accent-ink);
+  }
+
+  .btn.primary:hover {
+    background: linear-gradient(180deg, rgba(100, 248, 220, 0.98), rgba(26, 178, 151, 0.96));
+  }
+
+  .btn.warn {
+    background: linear-gradient(180deg, rgba(240, 168, 77, 0.96), rgba(183, 100, 33, 0.94));
+    border-color: rgba(240, 168, 77, 0.7);
+    color: #1d0d02;
+  }
+
+  .btn.danger {
+    background: linear-gradient(180deg, rgba(255, 107, 107, 0.96), rgba(181, 55, 66, 0.94));
+    border-color: rgba(255, 107, 107, 0.7);
+    color: #fff;
+  }
+
+  .btn.ghost,
+  .link-btn {
+    background: transparent;
+    border-color: var(--line);
+  }
+
+  .sidebar .btn.ghost,
+  .sidebar .link-btn {
+    color: var(--sidebar-text);
+    border-color: var(--line);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    min-width: 0;
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px) saturate(125%);
+  }
+
+  .sidebar .panel {
+    background: rgba(255, 255, 255, 0.055);
+    border-color: var(--line);
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .panel h2,
+  .panel h3 {
+    margin: 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 800;
+  }
+
+  .sidebar .panel h2,
+  .sidebar .panel h3 {
+    color: rgba(247, 244, 234, 0.72);
+  }
+
+  label {
+    display: block;
+    margin: 9px 0 5px;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 750;
+  }
+
+  .sidebar label {
+    color: rgba(247, 244, 234, 0.68);
+  }
+
+  input,
+  textarea,
+  select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--field);
+    color: var(--ink);
+    padding: 9px 10px;
+    min-height: 38px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+  }
+
+  input:hover,
+  textarea:hover,
+  select:hover {
+    border-color: var(--line-strong);
+    background: rgba(3, 9, 11, 0.56);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgba(237, 247, 244, 0.38);
+  }
+
+  input[type="checkbox"] {
+    accent-color: var(--accent);
+  }
+
+  textarea {
+    min-height: 132px;
+    resize: vertical;
+    line-height: 1.4;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus-visible,
+  a:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  .sidebar input,
+  .sidebar textarea,
+  .sidebar select {
+    background: rgba(2, 7, 9, 0.36);
+    border-color: var(--line);
+    color: #fffdf6;
+  }
+
+  option {
+    background: #101719;
+    color: var(--ink);
+  }
+
+  .sidebar input::placeholder,
+  .sidebar textarea::placeholder {
+    color: rgba(247, 244, 234, 0.42);
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .option-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    color: rgba(237, 247, 244, 0.82);
+    font-size: 0.88rem;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 650;
+  }
+
+  .option-row input {
+    width: 18px;
+    min-height: 18px;
+    height: 18px;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin: -18px -18px 0;
+    padding: 18px 18px 8px;
+    background: linear-gradient(180deg, rgba(7, 9, 11, 0.86), rgba(7, 9, 11, 0.56) 72%, transparent);
+    backdrop-filter: blur(14px) saturate(120%);
+  }
+
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(8, 13, 15, 0.66);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px) saturate(130%);
+  }
+
+  .tab {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 800;
+  }
+
+  .tab:hover {
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .tab.active {
+    background: rgba(62, 230, 198, 0.16);
+    border-color: rgba(62, 230, 198, 0.42);
+    color: #dffdf8;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .view {
+    display: none;
+  }
+
+  .view.active {
+    display: grid;
+    gap: 14px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .stat {
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+  }
+
+  .stat span {
+    display: block;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+
+  .stat strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 1.35rem;
+    line-height: 1.1;
+  }
+
+  .review-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+
+  .filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: calc(100vh - 260px);
+    overflow: auto;
+    padding-right: 2px;
+    margin-top: 10px;
+  }
+
+  .item {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.055);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+  }
+
+  .item:hover {
+    border-color: var(--line-strong);
+    background: rgba(255, 255, 255, 0.085);
+    transform: translateY(-1px);
+  }
+
+  .item.active {
+    border-color: rgba(62, 230, 198, 0.72);
+    background: rgba(62, 230, 198, 0.11);
+    box-shadow: 0 0 0 2px rgba(62, 230, 198, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .item-title {
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .item-summary {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.35;
+    margin-top: 5px;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.075);
+    color: rgba(237, 247, 244, 0.78);
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    line-height: 1;
+    font-weight: 750;
+  }
+
+  .badge.good {
+    background: rgba(73, 217, 133, 0.16);
+    border-color: rgba(73, 217, 133, 0.28);
+    color: #a8f1c2;
+  }
+
+  .badge.warn {
+    background: rgba(247, 199, 95, 0.16);
+    border-color: rgba(247, 199, 95, 0.28);
+    color: #ffe2a0;
+  }
+
+  .badge.danger {
+    background: rgba(255, 107, 107, 0.16);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: #ffc1c1;
+  }
+
+  .detail {
+    display: grid;
+    gap: 12px;
+  }
+
+  .detail-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .detail-title h2 {
+    color: var(--ink);
+    font-size: 1.05rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .box {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(2, 7, 9, 0.42);
+    padding: 11px;
+    white-space: pre-wrap;
+    line-height: 1.45;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .empty {
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 18px;
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .task-list {
+    display: grid;
+    gap: 7px;
+  }
+
+  .task {
+    border-left: 3px solid var(--accent);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 8px 10px;
+    border-radius: 6px;
+    line-height: 1.35;
+  }
+
+  .ask-grid {
+    display: grid;
+    grid-template-columns: 380px minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+
+  .source-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .status {
+    min-height: 20px;
+    margin-top: 9px;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .status.ok {
+    color: var(--good);
+  }
+
+  .status.err {
+    color: var(--danger);
+  }
+
+  .code {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.82rem;
+    word-break: break-all;
+  }
+
+  .policy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  @media (max-width: 1040px) {
+    .app {
+      grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+      position: relative;
+      height: auto;
+      display: block;
+    }
+
+    .sidebar .panel + .panel {
+      margin-top: 14px;
+    }
+
+    .review-grid,
+    .ask-grid,
+    .policy-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .item-list {
+      max-height: 420px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .sidebar,
+    .workspace {
+      padding: 12px;
+    }
+
+    .topbar,
+    .detail-title {
+      display: grid;
+    }
+
+    .grid-2,
+    .filters,
+    .stats {
+      grid-template-columns: 1fr;
+    }
+
+    .toolbar .btn,
+    .toolbar .link-btn {
+      flex: 1 1 auto;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div>
+        <h1>Mnemosyne Memory</h1>
+        <p class="subtle">RAG gate</p>
+      </div>
+      <div class="toolbar">
+        <span class="version-chip">v3</span>
+        <a class="link-btn" href="/capture">Capture</a>
+        <a class="link-btn" href="/">Graph</a>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Capture</h2>
+      </div>
+
+      <label for="cap-url">URL or Video</label>
+      <input id="cap-url" type="url" placeholder="https://...">
+
+      <label for="cap-title">Title</label>
+      <input id="cap-title" type="text" placeholder="Optional">
+
+      <label for="cap-text">Text</label>
+      <textarea id="cap-text" placeholder="Paste thought, note, transcript, or source text"></textarea>
+
+      <div class="grid-2">
+        <div>
+          <label for="cap-project">Project</label>
+          <input id="cap-project" type="text" placeholder="Optional">
+        </div>
+        <div>
+          <label for="cap-tags">Tags</label>
+          <input id="cap-tags" type="text" placeholder="comma,separated">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <label for="cap-level">Memory Level</label>
+          <select id="cap-level">
+            <option value="raw">Raw</option>
+            <option value="temporary">Temporary</option>
+            <option value="project">Project</option>
+            <option value="long-term">Long-term</option>
+            <option value="sensitive">Sensitive</option>
+          </select>
+        </div>
+        <div>
+          <label for="cap-sensitivity">Sensitivity</label>
+          <select id="cap-sensitivity">
+            <option value="private">Private</option>
+            <option value="public">Public</option>
+            <option value="financial">Financial</option>
+            <option value="medical">Medical</option>
+            <option value="legal">Legal</option>
+            <option value="credentials">Credentials</option>
+            <option value="sensitive">Sensitive</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="option-row"><input id="cap-process" type="checkbox" checked>Process after capture</label>
+      <label class="option-row"><input id="cap-review" type="checkbox" checked>Require review before RAG</label>
+      <label class="option-row"><input id="cap-raw" type="checkbox" checked>Allow raw text in memory</label>
+
+      <div class="toolbar">
+        <button class="btn primary" onclick="captureItem()">Capture</button>
+        <button class="btn ghost" onclick="clearCapture()">Clear</button>
+      </div>
+      <div id="capture-status" class="status"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Device Entry</h2>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" onclick="copyShareLink()">Copy Share Link</button>
+        <button class="btn ghost" onclick="copyBookmarklet()">Copy Bookmarklet</button>
+      </div>
+      <div id="share-status" class="status"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Housekeeping</h2>
+        <button class="btn ghost" onclick="runHousekeeping()">Run</button>
+      </div>
+      <div class="box">
+        <div class="toolbar">
+          <span id="hk-status" class="badge warn">Starting</span>
+          <span id="hk-heartbeat" class="badge">No heartbeat</span>
+        </div>
+        <div id="hk-summary" class="status">Loading housekeeper...</div>
+        <div id="hk-findings" class="source-list"></div>
+      </div>
+    </section>
+  </aside>
+
+  <main class="workspace">
+    <div class="topbar">
+      <div class="page-title">
+        <h1>Memory Control</h1>
+        <p class="subtle">Review / Recall</p>
+      </div>
+      <span class="version-chip">UI refreshed 2026-05-17</span>
+      <div class="tabs">
+        <button class="tab active" data-view="review" onclick="showView('review')">Review</button>
+        <button class="tab" data-view="ask" onclick="showView('ask')">Ask Approved</button>
+        <button class="tab" data-view="policy" onclick="showView('policy')">Policy</button>
+      </div>
+    </div>
+
+    <section id="view-review" class="view active">
+      <div class="stats">
+        <div class="stat"><span>Captured</span><strong id="stat-captured">0</strong></div>
+        <div class="stat"><span>Processed</span><strong id="stat-processed">0</strong></div>
+        <div class="stat"><span>Indexed</span><strong id="stat-indexed">0</strong></div>
+        <div class="stat"><span>Reviewed</span><strong id="stat-reviewed">0</strong></div>
+      </div>
+
+      <div class="review-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Inbox</h2>
+            <button class="btn ghost" onclick="loadItems()">Refresh</button>
+          </div>
+
+          <div class="filters">
+            <select id="filter-status" onchange="loadItems()">
+              <option value="">All statuses</option>
+              <option value="captured">Captured</option>
+              <option value="processed">Processed</option>
+              <option value="indexed">Indexed</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="archived">Archived</option>
+              <option value="blocked">Blocked</option>
+            </select>
+            <select id="filter-level" onchange="loadItems()">
+              <option value="">All levels</option>
+              <option value="raw">Raw</option>
+              <option value="temporary">Temporary</option>
+              <option value="project">Project</option>
+              <option value="long-term">Long-term</option>
+              <option value="sensitive">Sensitive</option>
+            </select>
+          </div>
+
+          <label for="filter-q">Filter</label>
+          <input id="filter-q" type="text" placeholder="Title, source, project, tag" oninput="debouncedLoad()">
+          <div id="item-list" class="item-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Item Control</h2>
+          </div>
+          <div id="detail" class="detail">
+            <div class="empty">Select a memory item.</div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-ask" class="view">
+      <div class="ask-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Query Policy</h2>
+          </div>
+
+          <label for="ask-query">Question</label>
+          <textarea id="ask-query" placeholder="Question"></textarea>
+
+          <label class="option-row"><input class="ask-level" type="checkbox" value="temporary" checked>Temporary</label>
+          <label class="option-row"><input class="ask-level" type="checkbox" value="project" checked>Project</label>
+          <label class="option-row"><input class="ask-level" type="checkbox" value="long-term" checked>Long-term</label>
+          <label class="option-row"><input id="ask-raw" type="checkbox">Include raw</label>
+          <label class="option-row"><input id="ask-sensitive" type="checkbox">Include sensitive classes</label>
+
+          <button class="btn primary" onclick="askMemory()">Ask</button>
+          <div id="ask-status" class="status"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Answer</h2>
+          </div>
+          <div id="answer" class="box">No query yet.</div>
+          <div id="answer-sources" class="source-list"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-policy" class="view">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Memory Levels</h2>
+        </div>
+        <div class="policy-grid">
+          <div class="box"><strong>Raw</strong><br>Captured source, excluded by default.</div>
+          <div class="box"><strong>Working</strong><br>Temporary and project context.</div>
+          <div class="box"><strong>Long-term</strong><br>Reviewed context for recall.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Share Target</h2>
+        </div>
+        <div class="box code" id="share-endpoint"></div>
+      </section>
+    </section>
+  </main>
+</div>
+
+<script>
+const state = {
+  items: [],
+  selected: null,
+  timer: null
+};
+
+const levels = ["raw", "temporary", "project", "long-term", "sensitive"];
+const sensitivities = ["private", "public", "financial", "medical", "legal", "credentials", "sensitive"];
+
+function qs(id) {
+  return document.getElementById(id);
+}
+
+function splitTags(value) {
+  return (value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(path, options);
+  const text = await response.text();
+  let data = {};
+
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (_) {
+    data = { raw: text };
+  }
+
+  if (!response.ok) {
+    throw new Error(data.detail || data.raw || response.statusText);
+  }
+
+  return data;
+}
+
+function setStatus(id, message, kind = "") {
+  const element = qs(id);
+  if (!element) return;
+  element.textContent = message || "";
+  element.className = `status ${kind}`;
+}
+
+function showView(name) {
+  document.querySelectorAll(".tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === name);
+  });
+  document.querySelectorAll(".view").forEach((view) => {
+    view.classList.toggle("active", view.id === `view-${name}`);
+  });
+}
+
+function renderHousekeeping(data) {
+  const status = data.status || "unknown";
+  const heartbeat = data.heartbeat_at || "none";
+  const stats = data.stats || {};
+  const memory = (stats.memory || {}).counts || {};
+  const sources = stats.sources || {};
+  qs("hk-status").textContent = status;
+  qs("hk-status").className = `badge ${status === "idle" || status === "running" ? "good" : status === "error" ? "danger" : "warn"}`;
+  qs("hk-heartbeat").textContent = heartbeat === "none" ? "No heartbeat" : heartbeat.replace("T", " ").slice(0, 19);
+  qs("hk-summary").textContent = [
+    `${Number(stats.index_size || 0).toLocaleString()} chunks`,
+    `${Number(sources.source_count || 0).toLocaleString()} sources`,
+    `${Number(memory.captured || 0).toLocaleString()} captured`,
+    `next ${String(data.next_run_at || "pending").replace("T", " ").slice(0, 19)}`
+  ].join(" / ");
+  const findings = data.findings || [];
+  qs("hk-findings").innerHTML = findings.length
+    ? findings.slice(-4).map((item) => `<span class="badge ${item.severity === "error" ? "danger" : item.severity === "warning" ? "warn" : ""}">${escapeHtml(item.message || item.kind)}</span>`).join("")
+    : '<span class="badge good">No findings</span>';
+}
+
+async function loadHousekeeping() {
+  try {
+    renderHousekeeping(await api("/housekeeping/status"));
+  } catch (error) {
+    qs("hk-status").textContent = "error";
+    qs("hk-status").className = "badge danger";
+    qs("hk-summary").textContent = error.message;
+  }
+}
+
+async function runHousekeeping() {
+  try {
+    qs("hk-summary").textContent = "Housekeeping run started...";
+    renderHousekeeping(await api("/housekeeping/run", { method: "POST" }));
+  } catch (error) {
+    qs("hk-summary").textContent = error.message;
+    qs("hk-status").className = "badge danger";
+  }
+}
+
+function policyFrom(prefix) {
+  return {
+    add_to_rag: false,
+    summarize: true,
+    extract_tasks: true,
+    create_note: true,
+    memory_level: qs(`${prefix}-level`).value,
+    sensitivity: qs(`${prefix}-sensitivity`).value,
+    allowed_use: ["summarize", "answer", "extract_tasks"],
+    require_review: prefix === "cap" ? qs("cap-review").checked : true,
+    include_raw_text: prefix === "cap" ? qs("cap-raw").checked : qs(`${prefix}-raw`).checked
+  };
+}
+
+async function captureItem() {
+  const payload = {
+    url: qs("cap-url").value.trim() || null,
+    content: qs("cap-text").value.trim(),
+    title: qs("cap-title").value.trim() || null,
+    project: qs("cap-project").value.trim() || null,
+    tags: splitTags(qs("cap-tags").value),
+    namespace: "memory",
+    device: navigator.userAgent.includes("Mobile") ? "mobile-web" : "web",
+    process_now: qs("cap-process").checked,
+    policy: policyFrom("cap")
+  };
+
+  try {
+    setStatus("capture-status", "Capturing...");
+    const item = await api("/memory/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    clearCapture();
+    state.selected = item.id;
+    await loadItems();
+    setStatus("capture-status", "Captured", "ok");
+  } catch (error) {
+    setStatus("capture-status", error.message, "err");
+  }
+}
+
+function clearCapture() {
+  ["cap-url", "cap-title", "cap-text", "cap-project", "cap-tags"].forEach((id) => {
+    qs(id).value = "";
+  });
+}
+
+function debouncedLoad() {
+  clearTimeout(state.timer);
+  state.timer = setTimeout(loadItems, 220);
+}
+
+async function loadItems() {
+  const params = new URLSearchParams();
+  const status = qs("filter-status").value;
+  const level = qs("filter-level").value;
+  const query = qs("filter-q").value.trim();
+
+  if (status) params.set("status", status);
+  if (level) params.set("level", level);
+  if (query) params.set("q", query);
+
+  const data = await api(`/memory/items?${params.toString()}`);
+  state.items = data.items || [];
+
+  renderStats();
+  renderList();
+
+  const selected = state.items.find((item) => item.id === state.selected);
+  if (selected) {
+    renderDetail(selected);
+    return;
+  }
+
+  state.selected = state.items[0]?.id || null;
+  renderDetail(state.items[0]);
+}
+
+function renderStats() {
+  const counts = { captured: 0, processed: 0, indexed: 0, reviewed: 0 };
+
+  state.items.forEach((item) => {
+    if (counts[item.status] !== undefined) {
+      counts[item.status] += 1;
+    }
+  });
+
+  Object.keys(counts).forEach((key) => {
+    qs(`stat-${key}`).textContent = counts[key];
+  });
+}
+
+function badgeClass(value) {
+  if (value === "reviewed" || value === "long-term") return "good";
+  if (value === "sensitive" || value === "blocked") return "danger";
+  if (value === "raw" || value === "captured") return "warn";
+  return "";
+}
+
+function renderList() {
+  const mount = qs("item-list");
+
+  if (!state.items.length) {
+    mount.innerHTML = '<div class="empty">No memory items.</div>';
+    return;
+  }
+
+  mount.innerHTML = state.items.map((item) => {
+    const policy = item.policy || {};
+    const title = escapeHtml(item.title || item.source || item.id);
+    const summary = escapeHtml(item.summary || item.source || "");
+    const active = item.id === state.selected ? " active" : "";
+
+    return `
+      <div class="item${active}" onclick="selectItem('${item.id}')">
+        <div class="item-title">${title}</div>
+        <div class="item-summary">${summary}</div>
+        <div class="meta">
+          <span class="badge ${badgeClass(item.status)}">${escapeHtml(item.status)}</span>
+          <span class="badge ${badgeClass(policy.memory_level)}">${escapeHtml(policy.memory_level || "raw")}</span>
+          <span class="badge">${escapeHtml(item.source_kind || "capture")}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function selectItem(id) {
+  state.selected = id;
+  renderList();
+  renderDetail(state.items.find((item) => item.id === id));
+}
+
+function optionHtml(values, selected) {
+  return values.map((value) => {
+    const isSelected = value === selected ? "selected" : "";
+    return `<option value="${value}" ${isSelected}>${value}</option>`;
+  }).join("");
+}
+
+function renderDetail(item) {
+  const mount = qs("detail");
+
+  if (!item) {
+    mount.innerHTML = '<div class="empty">Select a memory item.</div>';
+    return;
+  }
+
+  const policy = item.policy || {};
+  const tasks = (item.tasks || []).map((task) => (
+    `<div class="task">${escapeHtml(task)}</div>`
+  )).join("") || '<div class="subtle">No tasks extracted.</div>';
+  const source = escapeHtml(item.rag_source || "not indexed");
+
+  mount.innerHTML = `
+    <div class="detail-title">
+      <h2>${escapeHtml(item.title || item.source || item.id)}</h2>
+      <div class="meta">
+        <span class="badge ${badgeClass(item.status)}">${escapeHtml(item.status)}</span>
+        <span class="badge ${badgeClass(policy.memory_level)}">${escapeHtml(policy.memory_level || "raw")}</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <label>Title</label>
+        <input id="det-title" type="text" value="${escapeHtml(item.title || "")}">
+      </div>
+      <div>
+        <label>Project</label>
+        <input id="det-project" type="text" value="${escapeHtml(item.project || "")}">
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <label>Memory Level</label>
+        <select id="det-level">${optionHtml(levels, policy.memory_level || "raw")}</select>
+      </div>
+      <div>
+        <label>Sensitivity</label>
+        <select id="det-sensitivity">${optionHtml(sensitivities, policy.sensitivity || "private")}</select>
+      </div>
+    </div>
+
+    <label class="option-row">
+      <input id="det-raw" type="checkbox" ${policy.include_raw_text !== false ? "checked" : ""}>
+      Allow raw text in memory
+    </label>
+
+    <label>Tags</label>
+    <input id="det-tags" type="text" value="${escapeHtml((item.tags || []).join(", "))}">
+
+    <label>Summary</label>
+    <div class="box">${escapeHtml(item.summary || "Not processed yet.")}</div>
+
+    <label>Extracted Tasks</label>
+    <div class="task-list">${tasks}</div>
+
+    <label>RAG Source</label>
+    <div class="box code">${source}</div>
+
+    <div class="toolbar">
+      <button class="btn" onclick="saveSelected()">Save</button>
+      <button class="btn" onclick="processSelected()">Process</button>
+      <button class="btn primary" onclick="approveSelected()">Approve</button>
+      <button class="btn warn" onclick="archiveSelected()">Archive</button>
+      <button class="btn danger" onclick="deleteSelected()">Delete</button>
+    </div>
+
+    <label class="option-row">
+      <input id="det-delete-rag" type="checkbox">
+      Delete indexed RAG source too
+    </label>
+    <div id="detail-status" class="status"></div>
+  `;
+}
+
+function selectedId() {
+  return state.selected;
+}
+
+function detailPolicy() {
+  return {
+    add_to_rag: true,
+    summarize: true,
+    extract_tasks: true,
+    create_note: true,
+    memory_level: qs("det-level").value,
+    sensitivity: qs("det-sensitivity").value,
+    allowed_use: ["summarize", "answer", "extract_tasks"],
+    require_review: true,
+    include_raw_text: qs("det-raw").checked
+  };
+}
+
+async function saveSelected() {
+  if (!selectedId()) return;
+
+  const payload = {
+    title: qs("det-title").value,
+    project: qs("det-project").value,
+    tags: splitTags(qs("det-tags").value),
+    namespace: "memory",
+    policy: detailPolicy()
+  };
+
+  try {
+    setStatus("detail-status", "Saving...");
+    await api(`/memory/items/${selectedId()}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    await loadItems();
+    setStatus("detail-status", "Saved", "ok");
+  } catch (error) {
+    setStatus("detail-status", error.message, "err");
+  }
+}
+
+async function processSelected() {
+  if (!selectedId()) return;
+
+  try {
+    setStatus("detail-status", "Processing...");
+    await api(`/memory/items/${selectedId()}/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force: true })
+    });
+    await loadItems();
+    setStatus("detail-status", "Processed", "ok");
+  } catch (error) {
+    setStatus("detail-status", error.message, "err");
+  }
+}
+
+async function approveSelected() {
+  if (!selectedId()) return;
+
+  try {
+    await saveSelected();
+    setStatus("detail-status", "Indexing into NeMo RAG...");
+    await api(`/memory/items/${selectedId()}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        policy: detailPolicy(),
+        namespace: "memory",
+        reviewed: true
+      })
+    });
+    await loadItems();
+    setStatus("detail-status", "Approved and indexed", "ok");
+  } catch (error) {
+    setStatus("detail-status", error.message, "err");
+  }
+}
+
+async function archiveSelected() {
+  if (!selectedId()) return;
+
+  try {
+    await api(`/memory/items/${selectedId()}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "archived" })
+    });
+    await loadItems();
+  } catch (error) {
+    setStatus("detail-status", error.message, "err");
+  }
+}
+
+async function deleteSelected() {
+  if (!selectedId()) return;
+
+  const deleteRag = qs("det-delete-rag")?.checked;
+
+  try {
+    await api(`/memory/items/${selectedId()}?delete_rag=${deleteRag ? "true" : "false"}`, {
+      method: "DELETE"
+    });
+    state.selected = null;
+    await loadItems();
+  } catch (error) {
+    setStatus("detail-status", error.message, "err");
+  }
+}
+
+async function askMemory() {
+  const query = qs("ask-query").value.trim();
+  if (!query) return;
+
+  const selectedLevels = Array.from(document.querySelectorAll(".ask-level:checked"))
+    .map((element) => element.value);
+  const payload = {
+    query,
+    levels: selectedLevels,
+    include_raw: qs("ask-raw").checked,
+    include_sensitive: qs("ask-sensitive").checked,
+    namespace: "memory",
+    k: 6
+  };
+
+  try {
+    setStatus("ask-status", "Retrieving approved context...");
+    const result = await api("/memory/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    qs("answer").textContent = result.answer || "";
+    qs("answer-sources").innerHTML = [
+      ...(result.sources || []).map((source) => `<span class="badge good">${escapeHtml(source)}</span>`),
+      ...(result.blocked || []).map((source) => `<span class="badge danger">blocked: ${escapeHtml(source)}</span>`)
+    ].join("");
+    setStatus("ask-status", "Done", "ok");
+  } catch (error) {
+    setStatus("ask-status", error.message, "err");
+  }
+}
+
+function copyShareLink() {
+  const value = `${location.origin}/capture?url=`;
+  navigator.clipboard.writeText(value);
+  setStatus("share-status", "Share link copied", "ok");
+}
+
+function copyBookmarklet() {
+  const js = `javascript:(()=>{const u=encodeURIComponent(location.href);const t=encodeURIComponent(document.title);window.open('${location.origin}/capture?url='+u+'&title='+t+'&device=bookmarklet','_blank')})()`;
+  navigator.clipboard.writeText(js);
+  setStatus("share-status", "Bookmarklet copied", "ok");
+}
+
+qs("share-endpoint").textContent = `${location.origin}/capture?url={encoded_url}&title={encoded_title}`;
+loadItems().catch((error) => setStatus("capture-status", error.message, "err"));
+loadHousekeeping();
+setInterval(loadHousekeeping, 15000);
+</script>
+</body>
+</html>

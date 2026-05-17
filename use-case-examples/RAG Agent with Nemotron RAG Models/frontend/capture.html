@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101820">
+<title>Memory Capture</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef2f6;
+  --ink: #111827;
+  --muted: #5f6b7a;
+  --line: #d9e0e7;
+  --teal: #087f73;
+  --teal-ink: #ffffff;
+  --blue: #255ea8;
+  --amber: #9f6200;
+  --red: #b42318;
+  --shadow: 0 16px 36px rgba(17, 24, 39, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: 44px;
+  border: 0;
+  cursor: pointer;
+}
+
+.shell {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.title h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 7vw, 2.3rem);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.title p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.link-btn,
+.ghost,
+.primary,
+.mode {
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.link-btn {
+  min-height: 40px;
+  padding: 0 12px;
+  background: #17212b;
+  color: #fff;
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.panel-body {
+  padding: 16px;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.fields {
+  display: grid;
+  gap: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+label {
+  display: block;
+  color: #273444;
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin-bottom: 6px;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  color: var(--ink);
+  outline: none;
+  padding: 11px 12px;
+  min-height: 44px;
+}
+
+textarea {
+  min-height: 210px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(8, 127, 115, 0.13);
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mode {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: #273444;
+  font-weight: 750;
+  padding: 0 10px;
+}
+
+.mode.active {
+  background: #102a43;
+  border-color: #102a43;
+  color: #fff;
+}
+
+.checks {
+  display: grid;
+  gap: 8px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+  color: #273444;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.check input {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+  padding: 0;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.primary {
+  background: var(--teal);
+  color: var(--teal-ink);
+  font-weight: 800;
+  padding: 0 16px;
+}
+
+.ghost {
+  background: var(--surface-2);
+  color: #273444;
+  border: 1px solid var(--line);
+  font-weight: 750;
+  padding: 0 12px;
+}
+
+.status {
+  min-height: 24px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.status.ok {
+  color: var(--teal);
+}
+
+.status.err {
+  color: var(--red);
+}
+
+.result {
+  display: none;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(8, 127, 115, 0.35);
+  background: rgba(8, 127, 115, 0.08);
+}
+
+.result.show {
+  display: block;
+}
+
+.result-title {
+  font-weight: 850;
+  margin-bottom: 8px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recent-list {
+  display: grid;
+  gap: 9px;
+}
+
+.recent-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfcfd;
+}
+
+.recent-title {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.recent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: #273444;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.badge.review {
+  background: rgba(159, 98, 0, 0.12);
+  color: var(--amber);
+}
+
+.badge.processed {
+  background: rgba(37, 94, 168, 0.12);
+  color: var(--blue);
+}
+
+.badge.indexed {
+  background: rgba(8, 127, 115, 0.12);
+  color: var(--teal);
+}
+
+.empty {
+  color: var(--muted);
+  min-height: 40px;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .layout,
+  .grid-2,
+  .modes,
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .link-btn {
+    min-height: 38px;
+  }
+
+  textarea {
+    min-height: 190px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="title">
+      <h1>Capture</h1>
+      <p id="origin-label">Memory inbox</p>
+    </div>
+    <a class="link-btn" href="/memory">Review</a>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>New Memory</h2>
+      </div>
+      <div class="panel-body">
+        <form id="capture-form" class="fields">
+          <div>
+            <label for="cap-url">URL</label>
+            <input id="cap-url" type="url" inputmode="url" autocomplete="url" placeholder="https://">
+          </div>
+
+          <div>
+            <label for="cap-title">Title</label>
+            <input id="cap-title" type="text" autocomplete="off">
+          </div>
+
+          <div>
+            <label for="cap-text">Text</label>
+            <textarea id="cap-text" autocomplete="off"></textarea>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label for="cap-project">Project</label>
+              <input id="cap-project" type="text" autocomplete="off">
+            </div>
+            <div>
+              <label for="cap-tags">Tags</label>
+              <input id="cap-tags" type="text" autocomplete="off" placeholder="comma,separated">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label for="cap-kind">Source</label>
+              <select id="cap-kind">
+                <option value="">Auto</option>
+                <option value="note">Note</option>
+                <option value="web">Web</option>
+                <option value="video">Video</option>
+                <option value="email">Email</option>
+                <option value="chat">Chat</option>
+              </select>
+            </div>
+            <div>
+              <label for="cap-device">Device</label>
+              <input id="cap-device" type="text" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label for="cap-level">Memory</label>
+              <select id="cap-level">
+                <option value="raw">Raw</option>
+                <option value="temporary">Temporary</option>
+                <option value="project">Project</option>
+                <option value="long-term">Long-term</option>
+                <option value="sensitive">Sensitive</option>
+              </select>
+            </div>
+            <div>
+              <label for="cap-sensitivity">Sensitivity</label>
+              <select id="cap-sensitivity">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+                <option value="financial">Financial</option>
+                <option value="medical">Medical</option>
+                <option value="legal">Legal</option>
+                <option value="credentials">Credentials</option>
+                <option value="sensitive">Sensitive</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label>Send Mode</label>
+            <div class="modes" role="group" aria-label="Send mode">
+              <button class="mode active" type="button" data-mode="review">Review</button>
+              <button class="mode" type="button" data-mode="process">Process</button>
+              <button class="mode" type="button" data-mode="approve">Approve</button>
+            </div>
+          </div>
+
+          <div class="checks">
+            <label class="check"><input id="cap-raw" type="checkbox" checked>Keep raw text</label>
+            <label class="check"><input id="cap-summary" type="checkbox" checked>Summarize</label>
+            <label class="check"><input id="cap-tasks" type="checkbox" checked>Extract tasks</label>
+          </div>
+
+          <div class="actions">
+            <button class="primary" type="submit">Send to Memory</button>
+            <button class="ghost" type="button" id="clear-btn">Clear</button>
+          </div>
+
+          <div id="status" class="status"></div>
+          <div id="result" class="result"></div>
+        </form>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="panel-head">
+        <h2>Recent</h2>
+        <button class="ghost" type="button" id="refresh-btn">Refresh</button>
+      </div>
+      <div class="panel-body">
+        <div id="recent" class="recent-list">
+          <div class="empty">No items loaded.</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+const form = document.getElementById("capture-form");
+const fields = {
+  url: document.getElementById("cap-url"),
+  title: document.getElementById("cap-title"),
+  text: document.getElementById("cap-text"),
+  project: document.getElementById("cap-project"),
+  tags: document.getElementById("cap-tags"),
+  kind: document.getElementById("cap-kind"),
+  device: document.getElementById("cap-device"),
+  level: document.getElementById("cap-level"),
+  sensitivity: document.getElementById("cap-sensitivity"),
+  raw: document.getElementById("cap-raw"),
+  summary: document.getElementById("cap-summary"),
+  tasks: document.getElementById("cap-tasks")
+};
+const statusEl = document.getElementById("status");
+const resultEl = document.getElementById("result");
+let sendMode = "review";
+let draftTimer = null;
+
+function api(path, options = {}) {
+  return fetch(path, options).then(async (response) => {
+    const text = await response.text();
+    let data = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (_) {
+      data = { raw: text };
+    }
+    if (!response.ok) {
+      throw new Error(data.detail || data.raw || response.statusText);
+    }
+    return data;
+  });
+}
+
+function setStatus(message, kind = "") {
+  statusEl.textContent = message || "";
+  statusEl.className = `status ${kind}`;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function splitTags(value) {
+  return value.split(",").map((tag) => tag.trim()).filter(Boolean);
+}
+
+function defaultDeviceName() {
+  const ua = navigator.userAgent;
+  if (/iPad|Tablet/i.test(ua)) return "tablet-web";
+  if (/Mobi|Android|iPhone/i.test(ua)) return "mobile-web";
+  return "desktop-web";
+}
+
+function sourceKindFromUrl(url) {
+  const value = url.toLowerCase();
+  if (value.includes("youtube.com") || value.includes("youtu.be") || value.includes("vimeo.com")) {
+    return "video";
+  }
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return "web";
+  }
+  return "";
+}
+
+function policy() {
+  const approve = sendMode === "approve";
+  return {
+    add_to_rag: approve,
+    summarize: fields.summary.checked,
+    extract_tasks: fields.tasks.checked,
+    create_note: true,
+    memory_level: fields.level.value,
+    sensitivity: fields.sensitivity.value,
+    allowed_use: ["summarize", "answer", "extract_tasks"],
+    require_review: !approve,
+    include_raw_text: fields.raw.checked
+  };
+}
+
+function payload() {
+  const url = fields.url.value.trim();
+  const kind = fields.kind.value || sourceKindFromUrl(url) || null;
+  return {
+    url: url || null,
+    content: fields.text.value.trim(),
+    title: fields.title.value.trim() || null,
+    source_kind: kind,
+    device: fields.device.value.trim() || defaultDeviceName(),
+    project: fields.project.value.trim() || null,
+    tags: splitTags(fields.tags.value),
+    namespace: "memory",
+    process_now: sendMode === "process" || sendMode === "approve",
+    approve_now: sendMode === "approve",
+    policy: policy()
+  };
+}
+
+function setMode(mode) {
+  sendMode = mode;
+  document.querySelectorAll(".mode").forEach((button) => {
+    button.classList.toggle("active", button.dataset.mode === mode);
+  });
+}
+
+function saveDraftSoon() {
+  window.clearTimeout(draftTimer);
+  draftTimer = window.setTimeout(saveDraft, 250);
+}
+
+function saveDraft() {
+  const data = {
+    url: fields.url.value,
+    title: fields.title.value,
+    text: fields.text.value,
+    project: fields.project.value,
+    tags: fields.tags.value,
+    kind: fields.kind.value,
+    device: fields.device.value,
+    level: fields.level.value,
+    sensitivity: fields.sensitivity.value,
+    raw: fields.raw.checked,
+    summary: fields.summary.checked,
+    tasks: fields.tasks.checked,
+    mode: sendMode
+  };
+  localStorage.setItem("memory-capture-draft", JSON.stringify(data));
+}
+
+function loadDraft() {
+  try {
+    return JSON.parse(localStorage.getItem("memory-capture-draft") || "{}");
+  } catch (_) {
+    return {};
+  }
+}
+
+function applyDraft(data) {
+  Object.entries(data || {}).forEach(([key, value]) => {
+    if (key === "mode") return;
+    if (!fields[key]) return;
+    if (fields[key].type === "checkbox") {
+      fields[key].checked = Boolean(value);
+    } else {
+      fields[key].value = value || "";
+    }
+  });
+  if (data.mode) setMode(data.mode);
+}
+
+function applyQueryParams() {
+  const params = new URLSearchParams(window.location.search);
+  const url = params.get("url") || params.get("u");
+  const title = params.get("title") || params.get("t");
+  const text = params.get("text") || params.get("body") || params.get("selection");
+  const device = params.get("device");
+  const level = params.get("level");
+  const project = params.get("project");
+  const tags = params.get("tags");
+  const mode = params.get("mode");
+  if (url) fields.url.value = url;
+  if (title) fields.title.value = title;
+  if (text) fields.text.value = text;
+  if (device) fields.device.value = device;
+  if (level && [...fields.level.options].some((option) => option.value === level)) fields.level.value = level;
+  if (project) fields.project.value = project;
+  if (tags) fields.tags.value = tags;
+  if (mode && ["review", "process", "approve"].includes(mode)) setMode(mode);
+}
+
+function clearForm() {
+  fields.url.value = "";
+  fields.title.value = "";
+  fields.text.value = "";
+  fields.project.value = "";
+  fields.tags.value = "";
+  fields.kind.value = "";
+  fields.level.value = "raw";
+  fields.sensitivity.value = "private";
+  fields.raw.checked = true;
+  fields.summary.checked = true;
+  fields.tasks.checked = true;
+  setMode("review");
+  resultEl.classList.remove("show");
+  resultEl.innerHTML = "";
+  localStorage.removeItem("memory-capture-draft");
+  setStatus("");
+}
+
+function badgeClass(status) {
+  if (status === "indexed" || status === "reviewed") return "indexed";
+  if (status === "processed") return "processed";
+  return "review";
+}
+
+async function loadRecent() {
+  const mount = document.getElementById("recent");
+  try {
+    const data = await api("/memory/items");
+    const items = (data.items || []).slice(0, 8);
+    if (!items.length) {
+      mount.innerHTML = '<div class="empty">No memory items.</div>';
+      return;
+    }
+    mount.innerHTML = items.map((item) => {
+      const policy = item.policy || {};
+      const status = item.status || "captured";
+      const title = item.title || item.source || item.id;
+      return `
+        <div class="recent-item">
+          <div class="recent-title">${escapeHtml(title)}</div>
+          <div class="recent-meta">
+            <span class="badge ${badgeClass(status)}">${escapeHtml(status)}</span>
+            <span class="badge">${escapeHtml(policy.memory_level || "raw")}</span>
+            <span class="badge">${escapeHtml(item.source_kind || "capture")}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch (error) {
+    mount.innerHTML = `<div class="empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function submitCapture(event) {
+  event.preventDefault();
+  const data = payload();
+  if (!data.url && !data.content) {
+    setStatus("Add a URL or text.", "err");
+    return;
+  }
+  try {
+    setStatus("Sending...");
+    const item = await api("/memory/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    localStorage.removeItem("memory-capture-draft");
+    resultEl.classList.add("show");
+    resultEl.innerHTML = `
+      <div class="result-title">${escapeHtml(item.title || item.source || item.id)}</div>
+      <div class="button-row">
+        <a class="link-btn" href="/memory">Open Review</a>
+        <button class="ghost" type="button" id="capture-again">Capture Another</button>
+      </div>
+    `;
+    document.getElementById("capture-again").addEventListener("click", clearForm);
+    fields.text.value = "";
+    fields.url.value = "";
+    fields.title.value = "";
+    setStatus("Captured", "ok");
+    await loadRecent();
+  } catch (error) {
+    setStatus(error.message, "err");
+  }
+}
+
+document.querySelectorAll(".mode").forEach((button) => {
+  button.addEventListener("click", () => setMode(button.dataset.mode));
+});
+
+Object.values(fields).forEach((field) => {
+  field.addEventListener("input", saveDraftSoon);
+  field.addEventListener("change", saveDraftSoon);
+});
+
+form.addEventListener("submit", submitCapture);
+document.getElementById("clear-btn").addEventListener("click", clearForm);
+document.getElementById("refresh-btn").addEventListener("click", loadRecent);
+
+document.getElementById("origin-label").textContent = `${location.host} memory inbox`;
+fields.device.value = defaultDeviceName();
+applyDraft(loadDraft());
+applyQueryParams();
+loadRecent();
+</script>
+</body>
+</html>

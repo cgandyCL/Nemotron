@@ -23,4 +23,4 @@ These notebooks provide end-to-end recipes for deploying and customizing Nemotro
 
 ### Agentic
 
-- **[OpenScaffoldingResources](OpenScaffoldingResources/README.md)** — Guides for using Nemotron-3-Super with agentic coding tools (OpenCode, OpenClaw, Kilo Code CLI, OpenHands) via OpenRouter and build.nvidia.com.
+- **[OpenScaffoldingResources](OpenScaffoldingResources/README.md)** — Guides for using Nemotron-3-Super with agentic coding tools (OpenCode, Kilo Code CLI, OpenHands) via OpenRouter and build.nvidia.com.

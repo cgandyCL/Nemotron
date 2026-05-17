@@ -1,0 +1,3539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mnemosyne Admin</title>
+<style>
+  :root{
+    --bg:#13161d;
+    --bg2:#1a1f29;
+    --bg3:#0f1218;
+    --ink:#e7ebf5;
+    --muted:#97a0b6;
+    --line:#2d3444;
+    --accent:#7c9bff;
+    --accent2:#85d4ff;
+    --danger:#b42318;
+    --good:#177245;
+    --shadow:0 24px 56px rgba(0,0,0,.34);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 20% 18%, rgba(124,155,255,.1), transparent 24%),
+      radial-gradient(circle at 78% 22%, rgba(133,212,255,.08), transparent 26%),
+      linear-gradient(180deg,var(--bg3),var(--bg2) 55%, var(--bg));
+  }
+  button,input,textarea,select{font:inherit}
+  .app{
+    display:grid;
+    grid-template-columns:280px 1fr 332px;
+    height:100vh;
+  }
+  .rail,.side{
+    background:rgba(17,20,28,.9);
+    backdrop-filter:blur(18px);
+  }
+  .rail{
+    border-right:1px solid rgba(255,255,255,.05);
+    padding:16px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-width:0;
+    min-height:0;
+    overflow:hidden;
+  }
+  .side{
+    border-left:1px solid rgba(255,255,255,.05);
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-height:0;
+    overflow:hidden;
+  }
+  .brand h1{margin:0;font-size:1.7rem;line-height:1;letter-spacing:.01em}
+  .brand p,.muted{color:var(--muted)}
+  .pill,.badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border-radius:999px;
+    padding:5px 9px;
+    font-size:.68rem;
+    line-height:1;
+  }
+  .pill{
+    border:1px solid rgba(255,255,255,.1);
+    letter-spacing:.12em;
+    text-transform:uppercase;
+  }
+  .badge{
+    background:rgba(255,255,255,.06);
+    color:#dce4ff;
+  }
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#8b97a1}
+  .status-dot.live{background:#7c9bff;box-shadow:0 0 0 5px rgba(124,155,255,.18)}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;
+    padding:10px 12px;
+    background:rgba(255,255,255,.025);
+  }
+  .stat .k{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:#808aa3}
+  .stat .v{margin-top:6px;font-size:1.1rem}
+  .card{
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;
+    background:rgba(255,255,255,.025);
+    padding:12px;
+    min-height:0;
+  }
+  .head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .head h2,.canvas-head h2,.side h2,.card h3{margin:0;font-size:.72rem;text-transform:uppercase;letter-spacing:.16em;color:#a9b3cd}
+  .search,input[type=text],input[type=url],input[type=number],textarea,select{
+    width:100%;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(18,22,31,.94);
+    color:#eef2ff;
+    padding:9px 11px;
+  }
+  input::placeholder,textarea::placeholder{color:#77829c}
+  textarea{min-height:88px;resize:vertical}
+  .btn{
+    border:none;
+    border-radius:10px;
+    padding:9px 11px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#09111f}
+  .btn.secondary{background:rgba(255,255,255,.06);color:#dce4ff}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.12);color:#dce4ff}
+  .btn.danger{background:var(--danger);color:white}
+  .btn.small{padding:7px 10px;font-size:.78rem}
+  .list{display:flex;flex-direction:column;gap:4px;overflow:auto}
+  .source{
+    border:1px solid transparent;
+    border-radius:10px;
+    background:rgba(255,255,255,.015);
+    padding:9px 10px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    cursor:pointer;
+  }
+  .source:hover{background:rgba(124,155,255,.08)}
+  .source.active{border-color:rgba(124,155,255,.6);background:rgba(124,155,255,.12)}
+  .source.dim{opacity:.36}
+  .source-title{font-size:.88rem;line-height:1.2;color:#f2f5ff}
+  .source-summary{font-size:.75rem;line-height:1.35;color:#8c97b0}
+  .meta,.tags,.actions{display:flex;flex-wrap:wrap;gap:6px}
+  .center{
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+    min-width:0;
+    min-height:0;
+    overflow:hidden;
+  }
+  .canvas-head{
+    padding:10px 14px 6px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+  }
+  .canvas-head-left{display:flex;align-items:center;gap:10px}
+  .canvas-mobile-actions{display:none;gap:8px}
+  .canvas-head p{margin:4px 0 0;color:var(--muted);max-width:56ch;font-size:.82rem;line-height:1.35}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .toolbar select,.toolbar input{width:auto;min-width:120px}
+  .canvas-shell{
+    margin:0 12px 12px;
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:18px;
+    overflow:auto;
+    min-height:0;
+    cursor:grab;
+    background:
+      radial-gradient(circle at 10% 14%, rgba(124,155,255,.12), transparent 16%),
+      radial-gradient(circle at 84% 22%, rgba(133,212,255,.08), transparent 18%),
+      radial-gradient(circle at 55% 65%, rgba(93,104,139,.08), transparent 28%),
+      linear-gradient(180deg, rgba(8,11,16,.95), rgba(15,18,25,.98));
+    box-shadow:var(--shadow);
+  }
+  .board{
+    position:relative;
+    width:2800px;
+    height:1800px;
+    transform-origin:top left;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .edges{position:absolute;inset:0;pointer-events:none}
+  .nodes{position:absolute;inset:0}
+  .edge{stroke:rgba(133,150,191,.12);stroke-width:1.3}
+  .edge.explicit{stroke:rgba(124,155,255,.22)}
+  .edge.inferred{stroke:rgba(110,121,150,.2);stroke-dasharray:6 8}
+  .edge.semantic{stroke:rgba(111,214,174,.28);stroke-dasharray:2 7}
+  .edge.dim{stroke-opacity:.1}
+  .edge.active{stroke:rgba(133,212,255,.8);stroke-width:2.2}
+  .node{
+    position:absolute;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.08);
+    background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.34), rgba(124,155,255,.84));
+    box-shadow:0 0 0 1px rgba(255,255,255,.05), 0 0 18px rgba(124,155,255,.28);
+    cursor:grab;
+    user-select:none;
+    transition:opacity .14s ease, transform .14s ease, box-shadow .14s ease;
+  }
+  .node.active{box-shadow:0 0 0 2px rgba(133,212,255,.85), 0 0 24px rgba(133,212,255,.45)}
+  .node.dim{opacity:.18;transform:scale(.92)}
+  .node::after{
+    content:'';
+    position:absolute;
+    inset:-10px;
+    border-radius:999px;
+    opacity:0;
+    background:radial-gradient(circle, rgba(133,212,255,.2), transparent 68%);
+    transition:opacity .16s ease;
+  }
+  .node:hover::after,.node.active::after{opacity:1}
+  .node-label{
+    position:absolute;
+    top:calc(100% + 8px);
+    left:50%;
+    transform:translateX(-50%);
+    max-width:220px;
+    padding:4px 8px;
+    border-radius:8px;
+    background:rgba(8,12,18,.9);
+    color:#dfe7ff;
+    font-size:.72rem;
+    line-height:1.25;
+    border:1px solid rgba(255,255,255,.08);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    opacity:0;
+    pointer-events:none;
+  }
+  .node:hover .node-label,.node.active .node-label{opacity:1}
+  .preview-card{
+    position:absolute;
+    z-index:5;
+    width:min(320px, 42vw);
+    padding:10px 12px;
+    border-radius:12px;
+    background:rgba(8,12,18,.96);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 18px 48px rgba(0,0,0,.42);
+    color:#e4ebff;
+    pointer-events:none;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .12s ease, transform .12s ease;
+  }
+  .preview-card.show{opacity:1;transform:translateY(0)}
+  .preview-card h4{margin:0 0 6px;font-size:.9rem;line-height:1.25}
+  .preview-card p{margin:0;color:#96a1bc;font-size:.76rem;line-height:1.4}
+  .preview-meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .toolbar-group{display:flex;align-items:center;gap:8px}
+  .toolbar-group label{font-size:.72rem;color:#97a0b6;text-transform:uppercase;letter-spacing:.12em}
+  .local-graph{
+    width:100%;
+    height:220px;
+    border-radius:12px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .path-steps{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .path-arrow{color:#6f7a97;font-size:.8rem}
+  .legend{display:flex;flex-wrap:wrap;gap:8px}
+  .legend-item{display:flex;align-items:center;gap:8px;color:#99a5c1;font-size:.74rem}
+  .legend-line{width:22px;height:0;border-top:2px solid rgba(124,155,255,.4)}
+  .legend-line.inferred{border-top-style:dashed;border-top-color:rgba(150,160,186,.4)}
+  .legend-dot{width:10px;height:10px;border-radius:999px;background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.4), rgba(124,155,255,.92))}
+  .section{
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;
+    background:rgba(255,255,255,.025);
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .section h3{margin:0;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase}
+  .side-tabs{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:8px;
+  }
+  .side-tab{
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;
+    background:rgba(255,255,255,.03);
+    color:#b9c3dc;
+    padding:8px 10px;
+    cursor:pointer;
+    font-size:.68rem;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+  }
+  .side-tab.active{
+    background:rgba(124,155,255,.16);
+    border-color:rgba(124,155,255,.48);
+    color:#f4f7ff;
+  }
+  .side-panels{
+    flex:1;
+    min-height:0;
+    overflow:hidden;
+  }
+  .side-panel{
+    display:none;
+    flex-direction:column;
+    gap:10px;
+    height:100%;
+    min-height:0;
+    overflow:auto;
+    padding-right:2px;
+  }
+  .side-panel.active{display:flex}
+  .note-mode-tabs{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .note-mode{
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;
+    background:rgba(255,255,255,.03);
+    color:#b9c3dc;
+    padding:7px 10px;
+    cursor:pointer;
+    font-size:.74rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .note-mode.active{
+    background:rgba(124,155,255,.16);
+    border-color:rgba(124,155,255,.48);
+    color:#f4f7ff;
+  }
+  .observability-panel{
+    max-height:220px;
+    overflow:auto;
+    padding-right:2px;
+  }
+  .rail-card-actions{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .rail-saved-row{display:grid;grid-template-columns:1fr;gap:8px}
+  .tools-signals{max-height:220px;overflow:auto;padding-right:2px}
+  .mini-list{display:flex;flex-direction:column;gap:8px}
+  .detail{
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;
+    background:rgba(255,255,255,.05);
+    padding:12px;
+  }
+  .detail pre,.output pre{
+    white-space:pre-wrap;
+    word-break:break-word;
+    margin:0;
+    font-family:"SFMono-Regular",Consolas,monospace;
+    font-size:.84rem;
+    line-height:1.48;
+  }
+  .stack{display:flex;flex-direction:column;gap:10px;min-height:0}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chat-log{display:flex;flex-direction:column;gap:10px;max-height:240px;overflow:auto}
+  .message{
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:10px;
+    padding:10px 12px;
+    background:rgba(255,255,255,.035);
+  }
+  .message.user{background:rgba(124,155,255,.11)}
+  .message.assistant{background:rgba(255,255,255,.04)}
+  .drop{
+    border:1px dashed rgba(255,255,255,.18);
+    border-radius:12px;
+    padding:14px;
+    text-align:center;
+    color:#9ca7c0;
+    background:rgba(255,255,255,.03);
+  }
+  .drop.over{border-color:var(--accent);background:rgba(124,155,255,.08)}
+  .drop input{display:none}
+  .output{
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:12px;
+    background:rgba(255,255,255,.05);
+    padding:12px;
+    min-height:150px;
+  }
+  .status{min-height:18px;font-size:.88rem}
+  .status.ok{color:#4ed38f}
+  .status.err{color:#ff8a75}
+  .brain-tree{display:flex;flex-direction:column;gap:4px}
+  .brain-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 8px;
+    border-radius:8px;
+    color:#cfd7f0;
+    font-size:.8rem;
+  }
+  .brain-row .count{margin-left:auto;color:#7e89a2;font-size:.72rem}
+  .brain-row.active{background:rgba(124,155,255,.12);color:#fff}
+  .brain-folder{color:#ffd777}
+  .rail-copy{font-size:.72rem;line-height:1.35;color:#8f98b0}
+  @media (max-width:1400px){
+    .app{grid-template-columns:1fr}
+    .canvas-mobile-actions{display:flex}
+    .rail,.side{
+      position:fixed;
+      top:0;
+      bottom:0;
+      z-index:30;
+      width:min(380px,92vw);
+      transition:transform .18s ease;
+      box-shadow:var(--shadow);
+    }
+    .rail{left:0;transform:translateX(-102%)}
+    .side{right:0;transform:translateX(102%)}
+    .app.left-open .rail{transform:translateX(0)}
+    .app.right-open .side{transform:translateX(0)}
+  }
+/* Daily workspace redesign: dense, quiet, graph-first. */
+:root{
+  --bg:#101318;
+  --bg2:#151922;
+  --bg3:#0b0e13;
+  --ink:#e8edf4;
+  --muted:#8d96a8;
+  --line:#27303b;
+  --accent:#6d8cff;
+  --accent2:#4fb797;
+  --danger:#b42318;
+  --good:#177245;
+  --shadow:0 12px 24px rgba(0,0,0,.24);
+}
+body{
+  line-height:1.35;
+  background:linear-gradient(180deg,#0c1016,#121620);
+}
+.app{
+  grid-template-columns:300px minmax(520px,1fr) 360px;
+  background:#0d1117;
+}
+.rail,.side{
+  background:#131821;
+  backdrop-filter:none;
+}
+.rail,.side{
+  padding:10px;
+  gap:8px;
+}
+.brand h1{
+  font-size:1.08rem;
+  line-height:1.05;
+}
+.brand p{
+  margin:.35rem 0 0;
+  font-size:.72rem;
+}
+.pill,.badge{
+  border-radius:6px;
+  padding:3px 6px;
+  gap:5px;
+  font-size:.62rem;
+  letter-spacing:0;
+}
+.pill{
+  letter-spacing:.08em;
+}
+.stats{
+  gap:6px;
+}
+.stat,.card{
+  border-color:var(--line);
+  border-radius:7px;
+  background:#151a23;
+  box-shadow:none;
+}
+.stat{
+  padding:7px 8px;
+}
+.stat .k{
+  font-size:.56rem;
+  letter-spacing:.08em;
+}
+.stat .v{
+  margin-top:3px;
+  font-size:.92rem;
+}
+.card{
+  padding:9px;
+}
+.head h2,.canvas-head h2,.side h2,.card h3{
+  font-size:.64rem;
+  letter-spacing:.1em;
+  color:#aab3c2;
+}
+.search,input[type=text],input[type=url],input[type=number],textarea,select{
+  border-radius:6px;
+  border-color:#303947;
+  background:#0f141c;
+  padding:7px 8px;
+}
+textarea{
+  min-height:76px;
+}
+.btn{
+  border-radius:6px;
+  padding:7px 9px;
+}
+.btn.primary{
+  background:#6d8cff;
+  color:#08101f;
+}
+.btn.secondary,.btn.ghost{
+  background:#1b222d;
+  border:1px solid #303947;
+  color:#dce4ee;
+}
+.list{
+  gap:2px;
+}
+.source{
+  border-radius:6px;
+  padding:7px 8px;
+  gap:4px;
+  background:transparent;
+  border-left:3px solid transparent;
+}
+.source:hover{
+  background:#1a2230;
+}
+.source.active{
+  border-color:#6d8cff;
+  background:#1a2230;
+}
+.source-title{
+  font-size:.8rem;
+}
+.source-summary{
+  font-size:.68rem;
+  line-height:1.25;
+}
+.center{
+  background:#0b0f15;
+}
+.canvas-head{
+  padding:8px 10px;
+  align-items:center;
+  border-bottom:1px solid var(--line);
+  background:#111722;
+}
+.canvas-head p{
+  display:none;
+}
+.toolbar{
+  gap:5px;
+}
+.toolbar select,.toolbar input{
+  min-width:104px;
+}
+.canvas-shell{
+  margin:0;
+  border:0;
+  border-radius:0;
+  background:#0b0f15;
+  box-shadow:none;
+}
+.board{
+  background-color:#0b0f15;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:56px 56px;
+}
+.edge{
+  stroke:rgba(135,148,168,.16);
+  stroke-width:1.1;
+}
+.edge.explicit{
+  stroke:rgba(109,140,255,.32);
+}
+.edge.inferred{
+  stroke:rgba(139,151,168,.18);
+}
+.edge.semantic{
+  stroke:rgba(79,183,151,.3);
+}
+.edge.active{
+  stroke:#80d8ff;
+  stroke-width:2;
+}
+.node{
+  border:1px solid rgba(255,255,255,.16);
+  background:#6d8cff;
+  box-shadow:0 0 0 1px rgba(109,140,255,.22);
+}
+.node.active{
+  box-shadow:0 0 0 3px rgba(128,216,255,.7);
+}
+.node::after{
+  display:none;
+}
+.node-label{
+  max-width:180px;
+  padding:3px 6px;
+  border-radius:5px;
+  font-size:.66rem;
+  background:#0d1219;
+  border:1px solid #27303b;
+}
+.node.dim .node-label{
+  display:none;
+}
+.detail,.message{
+  border-radius:7px;
+}
+pre{
+  border-radius:6px;
+  background:#0d1219;
+}
+@media (max-width: 980px){
+  .app{
+    grid-template-columns:1fr;
+  }
+  .canvas-shell{
+    min-height:58vh;
+  }
+}
+/* Workflow pass: selection/search left, graph center, work output right. */
+.rail{
+  width:300px;
+}
+.side{
+  width:360px;
+}
+.center{
+  grid-template-rows:auto minmax(0,1fr);
+}
+.canvas-head{
+  min-height:44px;
+  flex-wrap:wrap;
+  overflow:visible;
+}
+.canvas-head-left{
+  min-width:0;
+}
+.canvas-head-left h2{
+  white-space:nowrap;
+}
+.canvas-shell{
+  height:auto;
+}
+.rail > .card,
+.side > .card{
+  flex:0 0 auto;
+}
+.rail .card:has(#source-list),
+.rail .list,
+#source-list{
+  flex:1 1 auto;
+  min-height:0;
+}
+#source-search{
+  height:34px;
+  border-color:#42506a;
+  background:#0b1119;
+  box-shadow:inset 0 0 0 1px rgba(109,140,255,.18);
+}
+#source-search:focus{
+  outline:2px solid rgba(109,140,255,.45);
+  outline-offset:0;
+}
+.rail .head,
+.side .head{
+  min-height:26px;
+}
+.source{
+  min-height:54px;
+  position:relative;
+  padding-right:48px;
+}
+.source .meta{
+  gap:4px;
+  flex-wrap:nowrap;
+  overflow:hidden;
+}
+.source .badge{
+  max-width:104px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.source .badge:nth-child(n+3){
+  display:none;
+}
+.source .badge:nth-child(2){
+  position:absolute;
+  top:7px;
+  right:8px;
+  max-width:44px;
+  justify-content:center;
+  color:#c6d0df;
+  background:#202938;
+}
+.source.active .source-title{
+  color:#ffffff;
+}
+.source-title{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.source-summary{
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  word-break:break-word;
+}
+.side{
+  overflow-y:auto;
+  scrollbar-width:thin;
+}
+.side .card{
+  overflow:hidden;
+}
+.side .card:has(#detail-body),
+#detail-body{
+  flex:1 1 240px;
+  min-height:0;
+  overflow:auto;
+}
+#chat-log{
+  max-height:26vh;
+  overflow:auto;
+  scrollbar-width:thin;
+}
+.detail{
+  border:1px solid #27303b;
+  background:#111720;
+  padding:9px;
+}
+.detail h3{
+  color:#d7deea;
+  font-size:.72rem;
+}
+.tabs,
+.actions{
+  gap:5px;
+}
+.tabs .btn,
+.actions .btn{
+  min-height:30px;
+}
+.toolbar .btn,
+.toolbar select,
+.toolbar input{
+  height:30px;
+}
+pre{
+  max-height:36vh;
+  overflow:auto;
+  scrollbar-width:thin;
+}
+.message{
+  padding:8px 9px;
+}
+.message.assistant{
+  background:#101722;
+  border:1px solid #263242;
+}
+.message.user{
+  background:#182131;
+  border:1px solid #34425a;
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible{
+  outline:2px solid rgba(109,140,255,.55);
+  outline-offset:1px;
+}
+@media (min-width: 1280px){
+  .app{
+    grid-template-columns:300px minmax(680px,1fr) 360px;
+  }
+}
+@media (min-width: 1600px){
+  .app{
+    grid-template-columns:320px minmax(900px,1fr) 380px;
+  }
+  .rail{width:320px}
+  .side{width:380px}
+}
+@media (max-width: 980px){
+  .rail,.side{
+    width:auto;
+  }
+  .center{
+    min-height:60vh;
+  }
+  .canvas-shell{
+    height:60vh;
+  }
+}
+/* Mnemosyne polish pass: resolved visual cascade, richer workspace, same workflows. */
+:root{
+  --bg:#0d0f10;
+  --bg2:#111513;
+  --bg3:#181812;
+  --ink:#f0f3ee;
+  --muted:#a2a89d;
+  --line:#31382f;
+  --accent:#2dd4bf;
+  --accent2:#f0b84b;
+  --danger:#e25555;
+  --good:#34d399;
+  --panel:#161a17;
+  --panel2:#1b211e;
+  --panel3:#101411;
+  --shadow:0 18px 46px rgba(0,0,0,.38);
+}
+html,body{background:#0d0f10}
+body{
+  line-height:1.4;
+  color:var(--ink);
+  background:
+    linear-gradient(135deg, rgba(45,212,191,.07), transparent 34%),
+    linear-gradient(315deg, rgba(240,184,75,.055), transparent 30%),
+    linear-gradient(180deg,#0b0d0d,#111513 48%,#15160f);
+}
+button,input,textarea,select{letter-spacing:0}
+.app{
+  grid-template-columns:320px minmax(720px,1fr) 390px;
+  gap:0;
+  background:transparent;
+}
+.rail,.side{
+  width:auto;
+  padding:14px;
+  gap:12px;
+  background:rgba(18,22,19,.92);
+  border-color:rgba(219,226,209,.1);
+  backdrop-filter:blur(18px);
+}
+.brand{
+  padding:2px 2px 4px;
+}
+.brand h1{
+  margin-top:8px;
+  font-size:1.45rem;
+  font-weight:720;
+  color:#fffaf0;
+}
+.pill{
+  border:1px solid rgba(45,212,191,.26);
+  background:rgba(45,212,191,.08);
+  color:#c6fff5;
+}
+.status-dot.live{
+  background:var(--accent);
+  box-shadow:0 0 0 4px rgba(45,212,191,.18),0 0 18px rgba(45,212,191,.45);
+}
+.stats{gap:8px}
+.stat,.card,.section,.detail,.output,.message{
+  border-radius:8px;
+  border:1px solid rgba(219,226,209,.11);
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));
+  box-shadow:0 1px 0 rgba(255,255,255,.045) inset,0 10px 28px rgba(0,0,0,.22);
+}
+.stat{padding:10px 11px}
+.stat .k{
+  font-size:.62rem;
+  color:#aeb7aa;
+}
+.stat .v{
+  margin-top:4px;
+  font-size:1.18rem;
+  font-weight:700;
+  color:#fff7df;
+}
+.card,.section{padding:12px}
+.head h2,.canvas-head h2,.side h2,.card h3,.section h3{
+  font-size:.7rem;
+  color:#cbd5c8;
+  letter-spacing:.12em;
+  font-weight:760;
+}
+.badge{
+  border-radius:6px;
+  padding:4px 7px;
+  background:rgba(240,184,75,.11);
+  border:1px solid rgba(240,184,75,.14);
+  color:#ffe8ac;
+}
+.meta .badge:nth-child(1),.source .badge:nth-child(1){
+  background:rgba(45,212,191,.11);
+  border-color:rgba(45,212,191,.18);
+  color:#bafcf1;
+}
+.search,input[type=text],input[type=url],input[type=number],textarea,select{
+  height:36px;
+  border-radius:7px;
+  border:1px solid rgba(219,226,209,.13);
+  background:#0f1411;
+  color:#f4f7f1;
+  padding:8px 10px;
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset;
+}
+textarea{
+  height:auto;
+  min-height:98px;
+  line-height:1.45;
+}
+input::placeholder,textarea::placeholder{color:#777f75}
+select{cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{
+  outline:2px solid rgba(45,212,191,.55);
+  outline-offset:2px;
+}
+.btn{
+  min-height:34px;
+  border-radius:7px;
+  padding:8px 11px;
+  font-weight:720;
+  transition:transform .12s ease,background .12s ease,border-color .12s ease,box-shadow .12s ease;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{
+  background:linear-gradient(135deg,#2dd4bf,#f0b84b);
+  color:#07110f;
+  box-shadow:0 10px 26px rgba(45,212,191,.18);
+}
+.btn.secondary,.btn.ghost{
+  background:#20261f;
+  border:1px solid rgba(219,226,209,.14);
+  color:#e6ede2;
+}
+.btn.secondary:hover,.btn.ghost:hover{border-color:rgba(45,212,191,.36)}
+.btn.danger{background:#612424;color:#ffe1dc;border:1px solid rgba(226,85,85,.35)}
+.btn.small{min-height:30px;padding:6px 9px}
+.brain-row{
+  border-radius:7px;
+  padding:8px 9px;
+}
+.brain-row.active{
+  background:rgba(45,212,191,.1);
+  box-shadow:inset 3px 0 0 var(--accent);
+}
+#source-search{
+  height:40px;
+  border-color:rgba(45,212,191,.28);
+  background:#0b100e;
+}
+.list{gap:6px;scrollbar-width:thin}
+.source{
+  min-height:68px;
+  border-radius:8px;
+  padding:10px 11px;
+  padding-right:68px;
+  background:rgba(11,15,14,.52);
+  border:1px solid rgba(219,226,209,.08);
+  border-left:3px solid transparent;
+}
+.source:hover{
+  background:rgba(31,39,34,.92);
+  border-color:rgba(45,212,191,.22);
+}
+.source.active{
+  border-left-color:var(--accent);
+  background:linear-gradient(90deg,rgba(45,212,191,.16),rgba(31,39,34,.96));
+  box-shadow:0 12px 28px rgba(0,0,0,.24);
+}
+.source-title{
+  font-size:.86rem;
+  color:#f6fbf3;
+  font-weight:680;
+}
+.source-summary{
+  font-size:.73rem;
+  color:#a8b0a5;
+}
+.source .badge:nth-child(2){
+  top:10px;
+  right:10px;
+  max-width:56px;
+  background:rgba(240,184,75,.12);
+  color:#ffe3a0;
+}
+.center{
+  grid-template-rows:58px minmax(0,1fr);
+  background:#0b0f0e;
+}
+.canvas-head{
+  min-height:58px;
+  padding:12px 16px;
+  align-items:center;
+  border-bottom:1px solid rgba(219,226,209,.1);
+  background:rgba(16,21,18,.92);
+}
+.canvas-head h2{
+  color:#fff7df;
+  font-size:.86rem;
+  letter-spacing:.14em;
+}
+.toolbar{gap:8px;justify-content:flex-end}
+.toolbar-group{gap:6px}
+.toolbar-group label{font-size:.62rem;color:#929d91}
+.toolbar .btn,.toolbar select,.toolbar input{
+  height:34px;
+  min-width:112px;
+}
+.toolbar .badge{height:34px}
+.canvas-shell{
+  height:calc(100vh - 58px);
+  margin:14px;
+  border-radius:8px;
+  border:1px solid rgba(219,226,209,.11);
+  background:
+    linear-gradient(180deg,rgba(13,17,15,.72),rgba(8,11,10,.92)),
+    linear-gradient(90deg,rgba(45,212,191,.045),rgba(240,184,75,.035));
+  box-shadow:var(--shadow);
+}
+.board{
+  background-color:#0a0d0c;
+  background-image:
+    linear-gradient(rgba(235,241,230,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(235,241,230,.035) 1px, transparent 1px),
+    linear-gradient(rgba(45,212,191,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45,212,191,.055) 1px, transparent 1px);
+  background-size:56px 56px,56px 56px,280px 280px,280px 280px;
+}
+.edge{stroke:rgba(190,202,187,.18);stroke-width:1.2}
+.edge.explicit{stroke:rgba(45,212,191,.42)}
+.edge.inferred{stroke:rgba(240,184,75,.24)}
+.edge.semantic{stroke:rgba(122,162,255,.32)}
+.edge.active{stroke:#eecb76;stroke-width:2.4}
+.node{
+  border:1px solid rgba(255,255,255,.2);
+  filter:saturate(1.1);
+}
+.node.active{
+  box-shadow:0 0 0 3px rgba(45,212,191,.8),0 0 30px rgba(45,212,191,.45) !important;
+}
+.node-label{
+  max-width:210px;
+  border-radius:7px;
+  background:rgba(12,16,14,.95);
+  border:1px solid rgba(219,226,209,.14);
+  color:#f8fbf4;
+  box-shadow:0 12px 30px rgba(0,0,0,.3);
+}
+.preview-card{
+  border-radius:8px;
+  background:rgba(17,22,19,.96);
+  border:1px solid rgba(45,212,191,.18);
+}
+.side-tabs{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:6px;
+}
+.side-tab,.note-mode{
+  border-radius:7px;
+  background:#141a16;
+  border:1px solid rgba(219,226,209,.12);
+  color:#aeb8ad;
+  padding:8px 7px;
+  font-size:.63rem;
+}
+.side-tab.active,.note-mode.active{
+  background:rgba(45,212,191,.14);
+  border-color:rgba(45,212,191,.38);
+  color:#f4fff9;
+}
+.side-panel{gap:12px;scrollbar-width:thin}
+#detail-body,.side-panel,.chat-log,.tools-signals,pre{scrollbar-width:thin}
+.detail{padding:12px;background:rgba(17,22,19,.86)}
+.detail h3{font-size:.74rem;color:#f0ead4}
+.output{min-height:170px}
+.message{padding:10px 11px}
+.message.assistant{background:rgba(21,27,24,.92);border-color:rgba(219,226,209,.1)}
+.message.user{background:rgba(45,212,191,.1);border-color:rgba(45,212,191,.2)}
+.drop{
+  border-radius:8px;
+  background:rgba(15,20,17,.82);
+  border-color:rgba(240,184,75,.26);
+}
+.drop.over{background:rgba(45,212,191,.09);border-color:var(--accent)}
+pre{
+  max-height:38vh;
+  border-radius:7px;
+  background:#0c110f;
+  border:1px solid rgba(219,226,209,.08);
+  padding:10px;
+}
+.row{gap:8px}
+.actions{gap:8px}
+@media (min-width:1280px){
+  .app{grid-template-columns:320px minmax(720px,1fr) 390px}
+}
+@media (min-width:1600px){
+  .app{grid-template-columns:340px minmax(900px,1fr) 410px}
+  .rail{width:auto}
+  .side{width:auto}
+}
+@media (max-width:1400px){
+  .app{grid-template-columns:1fr}
+  .rail,.side{
+    width:min(390px,92vw);
+    padding:14px;
+  }
+  .canvas-shell{height:calc(100vh - 58px)}
+}
+@media (max-width:980px){
+  .center{min-height:64vh}
+  .canvas-head{align-items:flex-start;gap:8px}
+  .toolbar{justify-content:flex-start}
+  .toolbar .btn,.toolbar select,.toolbar input{min-width:96px}
+  .canvas-shell{height:64vh;margin:8px}
+  .side-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* Source cards: stop clipping metadata pills and give scan lines a clean rhythm. */
+#source-list .source{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-areas:
+    "title"
+    "path"
+    "meta";
+  align-items:start;
+  min-height:78px;
+  padding:11px 12px !important;
+  padding-right:12px !important;
+  gap:5px;
+}
+#source-list .source-title{
+  grid-area:title;
+  min-width:0;
+  font-size:.88rem;
+  line-height:1.2;
+  font-weight:740;
+  letter-spacing:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#source-list .source-summary{
+  grid-area:path;
+  min-width:0;
+  font-size:.72rem;
+  line-height:1.3;
+  color:#9da89c;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  display:block;
+}
+#source-list .source .meta{
+  grid-area:meta;
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  overflow:visible;
+}
+#source-list .source .badge,
+#source-list .source .badge:nth-child(2),
+#source-list .source .badge:nth-child(3){
+  position:static !important;
+  display:inline-flex !important;
+  max-width:100%;
+  min-width:0;
+  height:auto;
+  justify-content:flex-start;
+  white-space:nowrap;
+  overflow:visible;
+  text-overflow:clip;
+  font-size:.62rem;
+}
+#source-list .source .badge:nth-child(n+4){
+  display:none !important;
+}
+.second-brain-card .sb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.second-brain-card .sb-metric{border:1px solid #27303b;border-radius:6px;padding:6px;background:#0f141c}
+.second-brain-card .sb-metric b{display:block;font-size:.95rem}
+.second-brain-card .sb-metric span{color:var(--muted);font-size:.62rem}
+.second-brain-card .sb-agent{display:flex;align-items:center;gap:7px;border:1px solid #27303b;border-radius:8px;padding:7px 8px;background:#0f141c;margin-top:8px;font-size:.7rem}
+.second-brain-card .sb-agent strong{font-size:.72rem;color:#edf2fb}
+.second-brain-card .sb-agent span:last-child{margin-left:auto;color:var(--muted);font-size:.64rem}
+.sb-row{border-top:1px solid #27303b;padding:7px 0}
+.sb-row:first-child{border-top:0}
+.sb-row-title{font-size:.76rem;color:#edf2fb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-row-meta{margin-top:3px;color:var(--muted);font-size:.66rem;line-height:1.25}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="pill"><span id="agent-dot" class="status-dot"></span><span id="agent-state">Checking agent</span></div>
+      <h1>Mnemosyne</h1>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">Sources</div><div id="stat-sources" class="v">0</div></div>
+      <div class="stat"><div class="k">Chunks</div><div id="stat-chunks" class="v">0</div></div>
+    </div>
+    <div class="card stack">
+      <div class="head"><h2>Explore</h2><button class="btn ghost small" onclick="refreshAll()">Refresh</button></div>
+      <div class="brain-tree">
+        <div class="brain-row active"><span class="brain-folder">▾</span><span>All notes</span><span id="brain-all-count" class="count">0</span></div>
+        <div class="brain-row"><span class="brain-folder">⌂</span><span>Brain folders</span><span id="brain-namespace-count" class="count">0</span></div>
+      </div>
+      <input id="source-search" class="search" type="text" placeholder="Find by note, tag, entity, collection" oninput="scheduleFilterRender()">
+      <div class="row">
+        <select id="collection-filter" onchange="scheduleFilterRender()"><option value="">All collections</option></select>
+        <select id="namespace-filter" onchange="scheduleFilterRender()"><option value="">All namespaces</option></select>
+      </div>
+      <div class="rail-card-actions">
+        <input id="saved-view-name" class="search" type="text" placeholder="Saved view name">
+        <div class="rail-saved-row">
+          <select id="saved-view-select" onchange="applySavedView(this.value)"><option value="">Saved views</option></select>
+          <button class="btn secondary" onclick="saveCurrentView()">Save View</button>
+          <button class="btn ghost small" onclick="deleteCurrentView()">Delete View</button>
+        </div>
+      </div>
+    </div>
+    <div class="card stack" style="min-height:0;flex:1;">
+      <div class="head"><h2>Explorer</h2><span class="badge" id="visible-count">0</span></div>
+      <div id="source-list" class="list"><div class="muted">Loading notes…</div></div>
+    </div>
+  </aside>
+
+  <main class="center">
+    <div class="canvas-head">
+      <div class="canvas-head-left">
+        <div class="canvas-mobile-actions">
+          <button class="btn secondary small" onclick="toggleLeftRail()">Explore</button>
+          <button class="btn secondary small" onclick="toggleRightRail()">Workspace</button>
+        </div>
+        <div>
+        <h2>Graph View</h2>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <label for="graph-scope">Scope</label>
+          <select id="graph-scope" onchange="applyScopeChange()">
+            <option value="global">Global</option>
+            <option value="local">Local</option>
+          </select>
+        </div>
+        <div class="toolbar-group">
+          <label for="hop-limit">Hops</label>
+          <select id="hop-limit" onchange="renderSourceList();renderCanvas()">
+            <option value="1">1 hop</option>
+            <option value="2" selected>2 hops</option>
+            <option value="3">3 hops</option>
+          </select>
+        </div>
+        <select id="layout-mode" onchange="applyLayout(this.value)">
+          <option value="links">Link clusters</option>
+          <option value="collection">Smart collections</option>
+          <option value="namespace">Brain folders / namespace</option>
+        </select>
+        <div class="toolbar-group">
+          <label for="color-mode">Color</label>
+          <select id="color-mode" onchange="renderCanvas()">
+            <option value="namespace">Folder</option>
+            <option value="collection">Collection</option>
+            <option value="type">Type</option>
+            <option value="recency">Recency</option>
+            <option value="activity">Activity</option>
+          </select>
+        </div>
+        <div class="toolbar-group">
+          <label for="graph-detail">Density</label>
+          <select id="graph-detail" onchange="renderSourceList();renderCanvas();fitBoard()">
+            <option value="overview" selected>Overview</option>
+            <option value="focus">Focus</option>
+            <option value="full">Full</option>
+          </select>
+        </div>
+        <label class="badge">Zoom <input id="zoom-range" type="range" min="0.6" max="1.4" step="0.05" value="1" oninput="setZoom(this.value)"></label>
+        <button class="btn secondary small" onclick="applyLayout(document.getElementById('layout-mode').value)">Auto Arrange</button>
+        <button class="btn secondary small" onclick="settleGraph()">Settle</button>
+        <button class="btn secondary small" onclick="fitBoard()">Center</button>
+      </div>
+    </div>
+    <div id="canvas-shell" class="canvas-shell">
+      <div id="board" class="board">
+        <svg id="edge-layer" class="edges"></svg>
+        <div id="node-layer" class="nodes"></div>
+        <div id="preview-card" class="preview-card"></div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="side">
+    <div class="side-tabs">
+      <button id="workspace-tab-note" class="side-tab active" onclick="switchWorkspace('note')">Note</button>
+      <button id="workspace-tab-ask" class="side-tab" onclick="switchWorkspace('ask')">Ask</button>
+      <button id="workspace-tab-write" class="side-tab" onclick="switchWorkspace('write')">Write</button>
+      <button id="workspace-tab-synthesis" class="side-tab" onclick="switchWorkspace('synthesis')">Synth</button>
+      <button id="workspace-tab-tools" class="side-tab" onclick="switchWorkspace('tools')">Tools</button>
+    </div>
+    <div class="side-panels">
+      <div id="workspace-note" class="side-panel active">
+        <div class="section">
+          <div class="head"><h2>Selected Note</h2><button class="btn secondary small" onclick="clearSelection()">Clear</button></div>
+          <div class="legend">
+            <div class="legend-item"><span class="legend-dot"></span><span>note</span></div>
+            <div class="legend-item"><span class="legend-line"></span><span>direct link</span></div>
+            <div class="legend-item"><span class="legend-line inferred"></span><span>reconstructed link</span></div>
+          </div>
+          <div class="note-mode-tabs">
+            <button id="note-mode-overview" class="note-mode active" onclick="switchNoteMode('overview')">Overview</button>
+            <button id="note-mode-details" class="note-mode" onclick="switchNoteMode('details')">Details</button>
+          </div>
+          <div id="detail-body" class="stack"><div class="muted">Select a note from the canvas or left rail.</div></div>
+        </div>
+      </div>
+
+      <div id="workspace-ask" class="side-panel">
+        <div class="section">
+          <h3>Grounded Chat</h3>
+          <div id="chat-log" class="chat-log"><div class="message assistant">Ask the running knowledge base a question.</div></div>
+          <div class="row">
+            <input id="chat-input" type="text" placeholder="Ask the atlas" onkeydown="if(event.key==='Enter'){event.preventDefault();sendMessage()}">
+            <button class="btn primary" onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="workspace-write" class="side-panel">
+        <div id="write-edit-body" class="section"><div class="muted">Select a note to edit it here.</div></div>
+        <div class="section">
+          <h3>Create Note</h3>
+          <input id="note-title" type="text" placeholder="note title">
+          <textarea id="txt-content" placeholder="Paste a note, transcript, or summary."></textarea>
+          <div class="row">
+            <input id="txt-source" type="text" placeholder="source label or leave blank for auto">
+            <input id="txt-tags" type="text" placeholder="comma tags">
+          </div>
+          <div class="row">
+            <button class="btn primary" onclick="createBrainNote()">Create Note</button>
+            <button class="btn secondary" onclick="ingestText()">Index Raw Text</button>
+          </div>
+          <div class="drop" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="handleFileDrop(event)">
+            <input id="file-input" type="file" accept=".pdf,.docx,.txt,.md,.rst,.csv,.html,.json,.yaml,.yml,.png,.jpg,.jpeg,.tiff,.bmp,.webp,.mp3,.wav,.m4a,.ogg,.flac,.mp4,.mov,.webm,.pst,.eml,.mbox" onchange="ingestFile(this.files[0])">
+            Drop a file here or click to browse.
+          </div>
+          <div class="row">
+            <input id="url-input" type="url" placeholder="https://example.com/article">
+            <button class="btn secondary" onclick="ingestURL()">Index URL</button>
+          </div>
+          <div class="row">
+            <input id="server-path" type="text" placeholder="/home/cgandycl/data/...">
+            <button class="btn secondary" onclick="ingestServerFolder()">Import Folder</button>
+          </div>
+          <div id="ingest-status" class="status"></div>
+        </div>
+      </div>
+
+      <div id="workspace-synthesis" class="side-panel">
+        <div class="section">
+          <h3>Synthesis</h3>
+          <select id="synth-mode" onchange="renderSynthesisInputs()">
+            <option value="source">Selected note briefing</option>
+            <option value="collection">Selected collection synthesis</option>
+            <option value="compare">Compare two notes</option>
+            <option value="changes">What changed between two notes</option>
+          </select>
+          <div id="synth-extra" class="stack"></div>
+          <textarea id="synth-instruction" placeholder="Optional instruction for the synthesis"></textarea>
+          <button class="btn primary" onclick="runSynthesis()">Run Synthesis</button>
+          <div id="synth-status" class="status"></div>
+          <div id="synth-output" class="output"><div class="muted">Run a synthesis workflow to generate a briefing.</div></div>
+        </div>
+      </div>
+
+      <div id="workspace-tools" class="side-panel">
+        <div class="section">
+          <h3>Signals</h3>
+          <div id="observability" class="stack tools-signals"><div class="muted">Loading signals…</div></div>
+        </div>
+        <div class="section">
+          <h3>Frontend Agent</h3>
+          <select id="uiux-focus">
+            <option value="overall">Overall workflow</option>
+            <option value="graph">Graph experience</option>
+            <option value="navigation">Navigation and hierarchy</option>
+            <option value="search">Search and discoverability</option>
+            <option value="authoring">Note authoring</option>
+            <option value="ingest">Ingest workflows</option>
+            <option value="admin">Admin operations</option>
+            <option value="performance">Perceived performance</option>
+          </select>
+          <input id="uiux-goal" type="text" placeholder="What should the app feel like?">
+          <textarea id="uiux-pain" placeholder="What is broken, confusing, too large, too slow, or hard to use?"></textarea>
+          <div class="row">
+            <button class="btn primary" onclick="runUIUXAgent()">Run Agent</button>
+            <button class="btn secondary" onclick="saveUIUXAgentNote()">Save as Note</button>
+          </div>
+          <div id="uiux-status" class="status"></div>
+          <div id="uiux-output" class="output"><div class="muted">Run the frontend agent to get a UI audit and fix plan for this app.</div></div>
+        </div>
+        <div class="section" id="admin-panel">
+          <div class="head"><h3>Admin</h3><button class="btn secondary small" onclick="refreshAdminPanel()">Refresh</button></div>
+          <div id="admin-health" class="detail"><div class="muted">Loading admin status…</div></div>
+          <div id="admin-job" class="detail"><div class="muted">Loading AI job status…</div></div>
+          <div class="row">
+            <button class="btn secondary" onclick="rebuildLinksAdmin()">Rebuild Links</button>
+            <button class="btn secondary" onclick="runReanalyzeAdmin()">Reanalyze All</button>
+          </div>
+          <div class="row">
+            <button class="btn secondary" onclick="refreshAll()">Refresh Graph</button>
+            <button class="btn danger" onclick="resetCollection()">Reset Collection</button>
+          </div>
+          <div id="admin-status" class="status"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const API = '';
+const BOARD_WIDTH = 2800;
+const BOARD_HEIGHT = 1800;
+const EXPLORER_RENDER_LIMIT = 320;
+let history = [];
+let graph = {nodes: [], edges: []};
+let sourceRecords = [];
+let sourceIndex = new Map();
+let adjacency = new Map();
+let smartCollections = [];
+let healthState = null;
+let deepHealthState = null;
+let configState = null;
+let reanalyzeState = null;
+let activeSource = '';
+let activeDetail = null;
+let positions = {};
+let savedViews = [];
+let zoom = 1;
+let dragging = null;
+let panning = null;
+let filterTimer = null;
+let layoutSaveTimer = null;
+let filteredState = {key: '', nodes: [], set: new Set()};
+let previewSource = '';
+let lastUIUXAgentResult = null;
+let activeWorkspace = 'note';
+let noteDetailMode = 'overview';
+let leftRailOpen = false;
+let rightRailOpen = false;
+
+const urlToken = new URLSearchParams(window.location.search).get('token');
+if (urlToken) localStorage.setItem('mnemosyneApiToken', urlToken);
+
+function withApiAuth(opts={}) {
+  const token = localStorage.getItem('mnemosyneApiToken') || '';
+  if (!token) return opts;
+  const headers = new Headers(opts.headers || {});
+  if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+  return {...opts, headers};
+}
+
+async function api(path, opts={}) {
+  const response = await fetch(API + path, withApiAuth(opts));
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
+}
+
+function focusPrimarySearch() {
+  const input = document.getElementById('source-search');
+  if (!input) return;
+  input.focus();
+  input.select();
+}
+
+function selectVisibleOffset(delta) {
+  if (typeof currentVisibleNodes !== 'function') return;
+  const visible = currentVisibleNodes();
+  if (!visible.length) return;
+  const current = visible.findIndex(node => node.source === activeSource);
+  const nextIndex = Math.max(0, Math.min(visible.length - 1, (current < 0 ? 0 : current) + delta));
+  selectSource(visible[nextIndex].source, true);
+}
+
+document.addEventListener('keydown', event => {
+  const target = event.target;
+  const editing = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+  if (target && target.id === 'source-search' && event.key === 'Enter' && typeof currentVisibleNodes === 'function') {
+    const first = currentVisibleNodes()[0];
+    if (first) {
+      event.preventDefault();
+      selectSource(first.source, true);
+    }
+  } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    focusPrimarySearch();
+  } else if (!editing && event.key === '/') {
+    event.preventDefault();
+    focusPrimarySearch();
+  } else if (!editing && event.altKey && event.key === 'ArrowDown') {
+    event.preventDefault();
+    selectVisibleOffset(1);
+  } else if (!editing && event.altKey && event.key === 'ArrowUp') {
+    event.preventDefault();
+    selectVisibleOffset(-1);
+  } else if (!editing && event.key === 'Escape' && typeof hidePreview === 'function') {
+    hidePreview();
+  }
+});
+
+function installSecondBrainPanel() {
+  const side = document.querySelector('.side');
+  if (!side || document.getElementById('second-brain-panel')) return;
+  const card = document.createElement('section');
+  card.className = 'card second-brain-card';
+  card.innerHTML = `
+    <div class="head">
+      <h2>Second Brain</h2>
+      <button class="btn ghost small" onclick="loadSecondBrainPanel()">Refresh</button>
+    </div>
+    <div class="actions" style="margin:8px 0">
+      <button class="btn secondary small" onclick="curateActiveSource('kept','trusted')">Keep</button>
+      <button class="btn secondary small" onclick="curateActiveSource('needs_action','use_with_caution')">Needs Action</button>
+      <button class="btn ghost small" onclick="curateActiveSource('archived','stale')">Archive</button>
+    </div>
+    <div id="second-brain-panel" class="stack"><div class="muted">Loading review state...</div></div>
+  `;
+  side.insertBefore(card, side.firstChild);
+  loadSecondBrainPanel();
+}
+
+function renderSbRows(items, emptyText) {
+  if (!items || !items.length) return `<div class="muted">${emptyText}</div>`;
+  return items.map(item => `
+    <div class="sb-row">
+      <div class="sb-row-title">${escapeHtml(item.title || item.source || item.id || 'Untitled')}</div>
+      <div class="sb-row-meta">${escapeHtml(item.curation_status || item.status || item.reason || '')} ${escapeHtml(item.namespace || '')}</div>
+    </div>
+  `).join('');
+}
+
+async function loadSecondBrainPanel() {
+  const mount = document.getElementById('second-brain-panel');
+  if (!mount) return;
+  mount.innerHTML = '<div class="muted">Loading review state...</div>';
+  try {
+    const [dash, review, actions, dedupe, connectors] = await Promise.all([
+      api('/second-brain/dashboard'),
+      api('/second-brain/review?status=unreviewed&limit=4'),
+      api('/second-brain/actions?limit=4'),
+      api('/second-brain/dedupe?limit=3'),
+      api('/second-brain/connectors'),
+    ]);
+    const connectorText = Object.entries(connectors.connectors || {}).map(([name, item]) => `${name}: ${item.state}`).join(' / ');
+    const hk = dash.housekeeping || {};
+    const hkLive = hk.thread_alive && !['error', 'disabled', 'stopped'].includes(hk.status);
+    const hkHeartbeat = String(hk.heartbeat_at || 'no heartbeat').replace('T', ' ').slice(0, 19);
+    mount.innerHTML = `
+      <div class="sb-grid">
+        <div class="sb-metric"><b>${Number(dash.inbox_count || 0)}</b><span>inbox</span></div>
+        <div class="sb-metric"><b>${Number(dash.open_actions || 0)}</b><span>actions</span></div>
+        <div class="sb-metric"><b>${Number(dash.duplicate_candidates || 0)}</b><span>dupes</span></div>
+      </div>
+      <div class="sb-agent">
+        <span class="status-dot ${hkLive ? 'live' : ''}"></span>
+        <strong>Housekeeper</strong>
+        <span>${escapeHtml(hk.status || 'unknown')} · ${escapeHtml(hkHeartbeat)}</span>
+      </div>
+      <div class="muted" style="font-size:.66rem;margin-top:6px">${escapeHtml(connectorText || 'connectors unavailable')}</div>
+      <h3 style="margin:10px 0 4px">Review Queue</h3>
+      ${renderSbRows(review.items, 'No unreviewed sources.')}
+      <h3 style="margin:10px 0 4px">Action Candidates</h3>
+      ${renderSbRows(actions.items, 'No action-like notes found.')}
+      <h3 style="margin:10px 0 4px">Possible Duplicates</h3>
+      ${renderSbRows((dedupe.candidates || []).map(item => ({title: `${item.left.title || item.left.source} / ${item.right.title || item.right.source}`, reason: `${Math.round(item.score * 100)}% ${item.reason}`})), 'No duplicate candidates.')}
+      <div class="actions" style="margin-top:8px">
+        <button class="btn ghost small" onclick="window.open(API + '/second-brain/export','_blank')">Export Metadata</button>
+      </div>
+    `;
+  } catch (error) {
+    mount.innerHTML = `<div class="muted">${escapeHtml(error.message || error)}</div>`;
+  }
+}
+
+async function curateActiveSource(status, trust) {
+  if (!activeSource) return;
+  await api('/second-brain/sources/curate', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({source: activeSource, curation_status: status, trust_level: trust})
+  });
+  loadSecondBrainPanel();
+}
+
+window.loadSecondBrainPanel = loadSecondBrainPanel;
+window.curateActiveSource = curateActiveSource;
+document.addEventListener('DOMContentLoaded', installSecondBrainPanel);
+
+function shortName(source) {
+  return source.split('/').pop() || source;
+}
+
+function pathLabel(source) {
+  const parts = String(source || '').split('/').filter(Boolean);
+  if (parts.length <= 1) return String(source || '');
+  return parts.slice(0, -1).join(' / ');
+}
+
+function hashTone(value) {
+  const text = String(value || 'mnemosyne');
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 360;
+}
+
+function nodeRadius(node) {
+  const direct = Number(node?.outbound_count || 0);
+  const back = Number(node?.backlink_count || 0);
+  const inferred = Number(node?.inferred_count || 0);
+  return Math.max(8, Math.min(18, 8 + Math.round((direct + back + inferred) / 2)));
+}
+
+function currentScope() {
+  return document.getElementById('graph-scope')?.value || 'global';
+}
+
+function currentHopLimit() {
+  return Number(document.getElementById('hop-limit')?.value || 2);
+}
+
+function currentColorMode() {
+  return document.getElementById('color-mode')?.value || 'namespace';
+}
+
+function currentGraphDetail() {
+  return document.getElementById('graph-detail')?.value || 'overview';
+}
+
+function currentActivityScore(node) {
+  return Number(node?.query_count || 0) + Number(node?.retrieve_count || 0) + Number(node?.synthesis_count || 0) * 2;
+}
+
+function switchWorkspace(name) {
+  activeWorkspace = name || 'note';
+  ['note','ask','write','synthesis','tools'].forEach(key => {
+    document.getElementById('workspace-' + key)?.classList.toggle('active', key === activeWorkspace);
+    document.getElementById('workspace-tab-' + key)?.classList.toggle('active', key === activeWorkspace);
+  });
+  if (window.innerWidth <= 1400) toggleRightRail(true);
+}
+
+function switchNoteMode(mode) {
+  noteDetailMode = mode || 'overview';
+  document.getElementById('note-mode-overview')?.classList.toggle('active', noteDetailMode === 'overview');
+  document.getElementById('note-mode-details')?.classList.toggle('active', noteDetailMode === 'details');
+  renderDetail();
+}
+
+function rebuildAdjacency() {
+  adjacency = new Map(sourceRecords.map(node => [node.source, new Set()]));
+  (graph.edges || []).forEach(edge => {
+    if (!adjacency.has(edge.source)) adjacency.set(edge.source, new Set());
+    if (!adjacency.has(edge.target)) adjacency.set(edge.target, new Set());
+    adjacency.get(edge.source).add(edge.target);
+    adjacency.get(edge.target).add(edge.source);
+  });
+}
+
+function localNeighborhood(source, hops) {
+  if (!source || !adjacency.has(source)) return new Set();
+  const seen = new Set([source]);
+  let frontier = [source];
+  for (let step = 0; step < hops; step += 1) {
+    const next = [];
+    frontier.forEach(nodeSource => {
+      (adjacency.get(nodeSource) || new Set()).forEach(target => {
+        if (!seen.has(target)) {
+          seen.add(target);
+          next.push(target);
+        }
+      });
+    });
+    frontier = next;
+    if (!frontier.length) break;
+  }
+  return seen;
+}
+
+function currentFocusSet() {
+  if (!activeSource) return null;
+  return localNeighborhood(activeSource, currentHopLimit());
+}
+
+function currentVisibleNodes() {
+  let base = filteredNodes();
+  const detail = currentGraphDetail();
+  if (currentScope() !== 'local' && !currentSearch() && !document.getElementById('collection-filter')?.value && !document.getElementById('namespace-filter')?.value) {
+    const ranked = [...base].sort((a, b) => {
+      const sa = currentActivityScore(a) + Number(a.backlink_count || 0) + Number(a.outbound_count || 0) + Number(a.inferred_count || 0);
+      const sb = currentActivityScore(b) + Number(b.backlink_count || 0) + Number(b.outbound_count || 0) + Number(b.inferred_count || 0);
+      return sb - sa;
+    });
+    const limit = detail === 'full' ? ranked.length : (detail === 'focus' ? 1200 : 700);
+    base = ranked.slice(0, limit);
+  }
+  if (currentScope() !== 'local' || !activeSource) return base;
+  const focus = currentFocusSet();
+  return base.filter(node => focus.has(node.source));
+}
+
+function applyResponsivePanels() {
+  const app = document.querySelector('.app');
+  if (!app) return;
+  app.classList.toggle('left-open', !!leftRailOpen);
+  app.classList.toggle('right-open', !!rightRailOpen);
+}
+
+function toggleLeftRail(force) {
+  leftRailOpen = typeof force === 'boolean' ? force : !leftRailOpen;
+  if (leftRailOpen) rightRailOpen = false;
+  applyResponsivePanels();
+}
+
+function toggleRightRail(force) {
+  rightRailOpen = typeof force === 'boolean' ? force : !rightRailOpen;
+  if (rightRailOpen) leftRailOpen = false;
+  applyResponsivePanels();
+}
+
+function nodeHue(node) {
+  const mode = currentColorMode();
+  if (mode === 'collection') return hashTone(node.smart_collection || node.namespace || node.source);
+  if (mode === 'type') return hashTone(node.type || node.source);
+  if (mode === 'activity') {
+    const score = currentActivityScore(node);
+    return Math.max(12, 220 - Math.min(190, score * 9));
+  }
+  if (mode === 'recency') {
+    const ts = Date.parse(node.ingested_at || '') || 0;
+    const now = Date.now();
+    const ageDays = Math.max(0, (now - ts) / 86400000);
+    return Math.max(12, 220 - Math.min(180, ageDays / 3));
+  }
+  return hashTone(node.namespace || node.smart_collection || node.source);
+}
+
+function shortestPath(from, to) {
+  if (!from || !to || from === to) return from && to ? [from] : [];
+  if (!adjacency.has(from) || !adjacency.has(to)) return [];
+  const queue = [from];
+  const prev = new Map([[from, null]]);
+  while (queue.length) {
+    const current = queue.shift();
+    if (current === to) break;
+    (adjacency.get(current) || new Set()).forEach(next => {
+      if (!prev.has(next)) {
+        prev.set(next, current);
+        queue.push(next);
+      }
+    });
+  }
+  if (!prev.has(to)) return [];
+  const path = [];
+  let cursor = to;
+  while (cursor) {
+    path.push(cursor);
+    cursor = prev.get(cursor);
+  }
+  return path.reverse();
+}
+
+function renderLocalGraphPanel(mount, detail) {
+  const focus = localNeighborhood(detail.source, currentHopLimit());
+  const nodes = [...focus].map(source => sourceIndex.get(source)).filter(Boolean);
+  if (!nodes.length) return;
+  const section = document.createElement('div');
+  section.className = 'detail';
+  const neighbors = [...(adjacency.get(detail.source) || new Set())];
+  section.innerHTML = `
+    <h3 style="margin:0 0 10px">Local graph</h3>
+    <div class="meta" style="margin-bottom:10px">
+      <span class="badge">${neighbors.length} direct neighbors</span>
+      <span class="badge">${Math.max(0, nodes.length - 1)} nodes in ${currentHopLimit()} hops</span>
+    </div>
+    <svg id="local-graph-panel" class="local-graph" viewBox="0 0 320 220"></svg>
+  `;
+  mount.appendChild(section);
+  const svg = section.querySelector('#local-graph-panel');
+  const centerX = 160;
+  const centerY = 110;
+  const layers = new Map();
+  nodes.forEach(node => {
+    const path = shortestPath(detail.source, node.source);
+    const depth = Math.max(0, path.length - 1);
+    if (!layers.has(depth)) layers.set(depth, []);
+    layers.get(depth).push(node);
+  });
+  layers.forEach((layerNodes, depth) => {
+    layerNodes.forEach((node, idx) => {
+      const angle = depth === 0 ? 0 : (Math.PI * 2 * idx) / Math.max(1, layerNodes.length);
+      const radius = depth === 0 ? 0 : 36 + depth * 42;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+      const lineTarget = shortestPath(detail.source, node.source);
+      if (depth > 0 && lineTarget.length > 1) {
+        const parent = lineTarget[lineTarget.length - 2];
+        const parentNode = svg.querySelector(`[data-node="${CSS.escape(parent)}"]`);
+        if (parentNode) {
+          const px = Number(parentNode.getAttribute('cx'));
+          const py = Number(parentNode.getAttribute('cy'));
+          const edge = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          edge.setAttribute('x1', px);
+          edge.setAttribute('y1', py);
+          edge.setAttribute('x2', x);
+          edge.setAttribute('y2', y);
+          edge.setAttribute('stroke', 'rgba(124,155,255,.28)');
+          edge.setAttribute('stroke-width', '1.5');
+          svg.appendChild(edge);
+        }
+      }
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', depth === 0 ? 8 : 5 + Math.min(5, depth));
+      circle.setAttribute('fill', `hsla(${nodeHue(node)}, 88%, 68%, .95)`);
+      circle.setAttribute('data-node', node.source);
+      circle.style.cursor = 'pointer';
+      circle.addEventListener('click', () => selectSource(node.source, true));
+      svg.appendChild(circle);
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', x);
+      label.setAttribute('y', y + (depth === 0 ? -14 : 16));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('fill', '#dfe7ff');
+      label.setAttribute('font-size', depth === 0 ? '11' : '9');
+      label.textContent = shortName(node.source).slice(0, 22);
+      svg.appendChild(label);
+    });
+  });
+}
+
+function renderPathfinderPanel(mount, detail) {
+  const section = document.createElement('div');
+  section.className = 'detail';
+  const options = sourceRecords.map(node => `<option value="${escapeHtml(node.source)}">${escapeHtml(node.title || shortName(node.source))}</option>`).join('');
+  section.innerHTML = `
+    <h3 style="margin:0 0 10px">Pathfinder</h3>
+    <div class="stack">
+      <select id="path-target">
+        <option value="">Find shortest path to…</option>
+        ${options}
+      </select>
+      <div id="path-result" class="path-steps muted">Choose a target note to trace a connection.</div>
+    </div>
+  `;
+  mount.appendChild(section);
+  const select = section.querySelector('#path-target');
+  const result = section.querySelector('#path-result');
+  select.addEventListener('change', () => {
+    const target = select.value;
+    result.innerHTML = '';
+    if (!target) {
+      result.className = 'path-steps muted';
+      result.textContent = 'Choose a target note to trace a connection.';
+      return;
+    }
+    const path = shortestPath(detail.source, target);
+    if (!path.length) {
+      result.className = 'path-steps muted';
+      result.textContent = 'No path found between these notes yet.';
+      return;
+    }
+    result.className = 'path-steps';
+    path.forEach((source, idx) => {
+      const button = document.createElement('button');
+      button.className = 'btn secondary small';
+      button.textContent = shortName(source);
+      button.onclick = () => selectSource(source, true);
+      result.appendChild(button);
+      if (idx < path.length - 1) {
+        const arrow = document.createElement('span');
+        arrow.className = 'path-arrow';
+        arrow.textContent = '→';
+        result.appendChild(arrow);
+      }
+    });
+  });
+}
+
+function showPreview(node, event) {
+  if (dragging) return;
+  previewSource = node.source;
+  const card = document.getElementById('preview-card');
+  card.innerHTML = `
+    <h4>${escapeHtml(node.title || shortName(node.source))}</h4>
+    <div class="preview-meta">
+      <span class="badge">${escapeHtml(node.namespace || 'brain')}</span>
+      <span class="badge">${escapeHtml(node.smart_collection || node.type || 'note')}</span>
+      <span class="badge">${node.explicit_count || 0} direct</span>
+      <span class="badge">${node.inferred_count || 0} inferred</span>
+      <span class="badge">${(node.query_count || 0) + (node.retrieve_count || 0)} hits</span>
+    </div>
+    <p>${escapeHtml(node.summary || pathLabel(node.source) || node.source)}</p>
+  `;
+  movePreview(event);
+  card.classList.add('show');
+}
+
+function movePreview(event) {
+  const card = document.getElementById('preview-card');
+  if (!card || !previewSource) return;
+  const boardRect = document.getElementById('board').getBoundingClientRect();
+  const x = event.clientX - boardRect.left + 18;
+  const y = event.clientY - boardRect.top + 18;
+  card.style.left = `${x}px`;
+  card.style.top = `${y}px`;
+}
+
+function hidePreview(source='') {
+  if (source && previewSource && previewSource !== source) return;
+  previewSource = '';
+  document.getElementById('preview-card').classList.remove('show');
+}
+
+function setStatus(id, message, ok=true) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+  el.textContent = message;
+}
+
+function parseTags(value) {
+  return value.split(',').map(v => v.trim()).filter(Boolean);
+}
+
+function escapeHtml(value) {
+  return String(value || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+function currentSearch() {
+  return document.getElementById('source-search').value.trim().toLowerCase();
+}
+
+function searchTokens(value) {
+  return String(value || '').toLowerCase().split(/[^a-z0-9]+/).map(token => token.trim()).filter(token => token.length >= 2);
+}
+
+function searchScore(node, query) {
+  if (!query) return 0;
+  const tokens = searchTokens(query);
+  if (!tokens.length) return 0;
+  const title = String(node.title || '').toLowerCase();
+  const source = String(node.source || '').toLowerCase();
+  const summary = String(node.summary || '').toLowerCase();
+  const article = String(node.article_excerpt || '').toLowerCase();
+  const collection = String(node.smart_collection || '').toLowerCase();
+  const namespace = String(node.namespace || '').toLowerCase();
+  const hay = String(node._search || '').toLowerCase();
+  let score = 0;
+  tokens.forEach(token => {
+    if (title === token) score += 18;
+    if (title.includes(token)) score += 10;
+    if (source.includes(token)) score += 8;
+    if (collection.includes(token)) score += 6;
+    if (namespace.includes(token)) score += 4;
+    if (summary.includes(token)) score += 5;
+    if (article.includes(token)) score += 3;
+    if (hay.includes(token)) score += 1;
+  });
+  if (title.includes(query)) score += 16;
+  if (source.includes(query)) score += 12;
+  if (summary.includes(query)) score += 8;
+  return score;
+}
+
+function buildFilterKey() {
+  return JSON.stringify({
+    search: currentSearch(),
+    collection: document.getElementById('collection-filter').value || '',
+    namespace: document.getElementById('namespace-filter').value || '',
+    total: sourceRecords.length,
+  });
+}
+
+function filteredNodes() {
+  const key = buildFilterKey();
+  if (filteredState.key === key) return filteredState.nodes;
+  const search = currentSearch();
+  const collectionFilter = document.getElementById('collection-filter').value || '';
+  const namespaceFilter = document.getElementById('namespace-filter').value || '';
+  const nodes = sourceRecords
+    .map(node => ({node, score: searchScore(node, search)}))
+    .filter(({node, score}) =>
+      (!search || score > 0) &&
+      (!collectionFilter || node.smart_collection === collectionFilter) &&
+      (!namespaceFilter || node.namespace === namespaceFilter)
+    )
+    .sort((a, b) => {
+      if (Boolean(b.node.pinned) !== Boolean(a.node.pinned)) return Number(Boolean(b.node.pinned)) - Number(Boolean(a.node.pinned));
+      if (search && b.score !== a.score) return b.score - a.score;
+      return currentActivityScore(b.node) - currentActivityScore(a.node) || (b.node.backlink_count || 0) - (a.node.backlink_count || 0) || (a.node.title || a.node.source).localeCompare(b.node.title || b.node.source);
+    })
+    .map(item => item.node);
+  filteredState = {key, nodes, set: new Set(nodes.map(node => node.source))};
+  return nodes;
+}
+
+function filteredSet() {
+  filteredNodes();
+  return filteredState.set;
+}
+
+function invalidateFiltered() {
+  filteredState = {key: '', nodes: [], set: new Set()};
+}
+
+function scheduleFilterRender() {
+  if (filterTimer) clearTimeout(filterTimer);
+  filterTimer = setTimeout(() => {
+    invalidateFiltered();
+    renderSourceList();
+    renderCanvas();
+  }, 120);
+}
+
+async function loadHealth() {
+  healthState = await api('/health');
+  document.getElementById('agent-state').textContent = healthState.agent ? 'Agent ready' : 'Agent unavailable';
+  document.getElementById('agent-dot').classList.toggle('live', !!healthState.agent);
+  document.getElementById('stat-chunks').textContent = Number(healthState.index_size || 0).toLocaleString();
+  renderAdminPanel();
+}
+
+async function loadDeepHealth() {
+  deepHealthState = await api('/health/deep');
+  renderAdminPanel();
+}
+
+async function loadCollections() {
+  smartCollections = await api('/collections/smart');
+}
+
+async function loadConfigState() {
+  configState = await api('/config');
+  renderAdminPanel();
+}
+
+async function loadReanalyzeState() {
+  reanalyzeState = await api('/ai/reanalyze/status');
+  renderAdminPanel();
+}
+
+async function loadSavedViews() {
+  const payload = await api('/graph/views');
+  savedViews = payload.views || [];
+  renderSavedViews();
+}
+
+async function loadLayout() {
+  const payload = await api('/graph/layout');
+  positions = payload.positions || {};
+}
+
+async function loadGraph() {
+  applyGraphPayload(await api('/graph?lite=1'));
+  requestAnimationFrame(() => fitBoard());
+}
+
+function applyGraphPayload(payload) {
+  graph = payload || {nodes: [], edges: []};
+  sourceRecords = (graph.nodes || []).map(node => ({
+    ...node,
+    _search: (node.search_text || [node.source, node.title || '', node.summary || '', node.smart_collection || '', node.namespace || '', node.type || ''].join(' ')).toLowerCase(),
+  }));
+  sourceIndex = new Map(sourceRecords.map(node => [node.source, node]));
+  rebuildAdjacency();
+  invalidateFiltered();
+  document.getElementById('stat-sources').textContent = String(sourceRecords.length);
+  document.getElementById('brain-all-count').textContent = String(sourceRecords.length);
+  document.getElementById('brain-namespace-count').textContent = String(new Set(sourceRecords.map(node => node.namespace).filter(Boolean)).size);
+  renderFilters();
+  ensurePositions();
+  sanitizePositions();
+  normalizePositions();
+  renderSourceList();
+  renderCanvas();
+  renderSynthesisInputs();
+}
+
+function renderAdminPanel() {
+  const healthMount = document.getElementById('admin-health');
+  const jobMount = document.getElementById('admin-job');
+  if (healthMount) {
+    if (!healthState || !configState) {
+      healthMount.innerHTML = '<div class="muted">Loading admin status…</div>';
+    } else {
+      const dependencies = (deepHealthState && deepHealthState.dependencies) || [];
+      const dependencyRows = dependencies.length
+        ? dependencies.map(item => `
+          <div class="row" style="align-items:center">
+            <span class="badge">${item.ok ? 'ok' : 'down'}</span>
+            <div class="muted">${escapeHtml(item.name || '-')} · ${Number(item.latency_ms || 0)}ms</div>
+          </div>
+        `).join('')
+        : '<div class="muted">Dependency probes not loaded.</div>';
+      healthMount.innerHTML = `
+        <h3 style="margin:0 0 10px">Backend</h3>
+        <div class="meta">
+          <span class="badge">${escapeHtml((deepHealthState && deepHealthState.status) || healthState.status || 'unknown')}</span>
+          <span class="badge">${escapeHtml(healthState.collection || '-')}</span>
+          <span class="badge">${escapeHtml(healthState.store || '-')}</span>
+        </div>
+        <div class="stack" style="margin-top:10px">
+          <div class="muted">LLM: ${escapeHtml(configState.llm_model || '-')}</div>
+          <div class="muted">Embed: ${escapeHtml(configState.embed_model || '-')}</div>
+          <div class="muted">Rerank: ${escapeHtml(configState.rerank_model || '-')}</div>
+          <div class="muted">Rows: ${Number(healthState.index_size || 0).toLocaleString()}</div>
+          ${dependencyRows}
+        </div>
+      `;
+    }
+  }
+  if (jobMount) {
+    if (!reanalyzeState) {
+      jobMount.innerHTML = '<div class="muted">Loading AI job status…</div>';
+    } else {
+      const running = !!reanalyzeState.running;
+      jobMount.innerHTML = `
+        <h3 style="margin:0 0 10px">AI Reanalyze</h3>
+        <div class="meta">
+          <span class="badge">${running ? 'running' : 'idle'}</span>
+          <span class="badge">${Number(reanalyzeState.completed || 0)}/${Number(reanalyzeState.total || 0)}</span>
+          ${reanalyzeState.started_at ? `<span class="badge">${escapeHtml(reanalyzeState.started_at)}</span>` : ''}
+        </div>
+        <div class="muted" style="margin-top:10px">${running ? 'Corpus-wide semantic refresh is active.' : 'No background reanalyze job is running.'}</div>
+        ${(reanalyzeState.errors || []).length ? `<pre style="margin-top:10px">${escapeHtml((reanalyzeState.errors || []).slice(0,5).join('\\\\n'))}</pre>` : ''}
+      `;
+    }
+  }
+}
+
+function renderFilters() {
+  const coll = document.getElementById('collection-filter');
+  const collValue = coll.value;
+  coll.innerHTML = '<option value="">All collections</option>';
+  smartCollections.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item.smart_collection;
+    opt.textContent = `${item.smart_collection} (${item.source_count})`;
+    coll.appendChild(opt);
+  });
+  if ([...coll.options].some(opt => opt.value === collValue)) coll.value = collValue;
+
+  const ns = document.getElementById('namespace-filter');
+  const nsValue = ns.value;
+  const namespaces = [...new Set(sourceRecords.map(node => node.namespace).filter(Boolean))].sort();
+  ns.innerHTML = '<option value="">All namespaces</option>';
+  namespaces.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    ns.appendChild(opt);
+  });
+  if ([...ns.options].some(opt => opt.value === nsValue)) ns.value = nsValue;
+}
+
+function renderSourceList() {
+  const visible = currentVisibleNodes();
+  const focus = currentFocusSet();
+  document.getElementById('visible-count').textContent = String(visible.length);
+  const list = document.getElementById('source-list');
+  list.innerHTML = '';
+  if (!visible.length) {
+    list.innerHTML = '<div class="muted">No notes match the current filter.</div>';
+    return;
+  }
+  visible.slice(0, EXPLORER_RENDER_LIMIT).forEach(node => {
+    const item = document.createElement('div');
+    const dim = focus && currentScope() === 'global' && !focus.has(node.source);
+    item.className = 'source' + (node.source === activeSource ? ' active' : '') + (dim ? ' dim' : '');
+    item.onclick = () => selectSource(node.source, true);
+    item.innerHTML = `
+      <div class="source-title">${node.pinned ? '★ ' : ''}${escapeHtml(node.title || shortName(node.source))}</div>
+      <div class="source-summary">${escapeHtml(pathLabel(node.source))}</div>
+      <div class="meta">
+        <span class="badge">${escapeHtml(node.namespace || 'brain')}</span>
+        <span class="badge">${node.explicit_count || 0}/${node.inferred_count || 0} links</span>
+        <span class="badge">${Number((node.alias_count ?? ((node.aliases || []).length)) || 0)} aliases</span>
+        <span class="badge">${currentActivityScore(node)} activity</span>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+  if (visible.length > EXPLORER_RENDER_LIMIT) {
+    const more = document.createElement('div');
+    more.className = 'muted';
+    more.textContent = `Showing first ${EXPLORER_RENDER_LIMIT} notes. Refine search or filters to narrow the explorer.`;
+    list.appendChild(more);
+  }
+}
+
+function renderSavedViews() {
+  const select = document.getElementById('saved-view-select');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '<option value="">Saved views</option>';
+  savedViews.forEach(view => {
+    const opt = document.createElement('option');
+    opt.value = view.name;
+    opt.textContent = view.name;
+    select.appendChild(opt);
+  });
+  if ([...select.options].some(opt => opt.value === current)) {
+    select.value = current;
+  }
+}
+
+function serializeViewState() {
+  return {
+    search: document.getElementById('source-search').value || '',
+    collection: document.getElementById('collection-filter').value || '',
+    namespace: document.getElementById('namespace-filter').value || '',
+    scope: currentScope(),
+    hops: String(currentHopLimit()),
+    layout: document.getElementById('layout-mode').value || 'collection',
+    color: currentColorMode(),
+    zoom,
+    activeSource,
+  };
+}
+
+async function saveCurrentView() {
+  const nameInput = document.getElementById('saved-view-name');
+  const name = (nameInput.value || document.getElementById('saved-view-select').value || '').trim();
+  if (!name) return;
+  const result = await api('/graph/views', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name, state: serializeViewState()}),
+  });
+  savedViews = result.views || [];
+  renderSavedViews();
+  document.getElementById('saved-view-select').value = name;
+  nameInput.value = name;
+}
+
+async function applySavedView(name) {
+  if (!name) return;
+  const view = savedViews.find(item => item.name === name);
+  if (!view) return;
+  const state = view.state || {};
+  document.getElementById('saved-view-name').value = name;
+  document.getElementById('source-search').value = state.search || '';
+  document.getElementById('collection-filter').value = state.collection || '';
+  document.getElementById('namespace-filter').value = state.namespace || '';
+  document.getElementById('graph-scope').value = state.scope || 'global';
+  document.getElementById('hop-limit').value = state.hops || '2';
+  document.getElementById('layout-mode').value = state.layout || 'collection';
+  document.getElementById('color-mode').value = state.color || 'namespace';
+  invalidateFiltered();
+  renderSourceList();
+  renderCanvas();
+  setZoom(Number(state.zoom || zoom || 1));
+  if (state.activeSource && sourceIndex.has(state.activeSource)) {
+    await selectSource(state.activeSource, true);
+  } else {
+    clearSelection();
+  }
+}
+
+async function deleteCurrentView() {
+  const select = document.getElementById('saved-view-select');
+  const name = (select.value || document.getElementById('saved-view-name').value || '').trim();
+  if (!name) return;
+  const result = await api('/graph/views/' + encodeURIComponent(name), {method: 'DELETE'});
+  savedViews = result.views || [];
+  document.getElementById('saved-view-name').value = '';
+  select.value = '';
+  renderSavedViews();
+}
+
+async function refreshAdminPanel() {
+  switchWorkspace('tools');
+  try {
+    await Promise.all([loadHealth(), loadDeepHealth(), loadConfigState(), loadReanalyzeState()]);
+    setStatus('admin-status', 'Admin state refreshed.', true);
+  } catch (error) {
+    setStatus('admin-status', error.message, false);
+  }
+}
+
+async function rebuildLinksAdmin() {
+  switchWorkspace('tools');
+  setStatus('admin-status', 'Rebuilding links…', true);
+  try {
+    const result = await api('/links/rebuild', {method:'POST'});
+    setStatus('admin-status', `Rebuilt ${result.rebuilt_sources || 0} sources, ${result.explicit_edges || 0} direct edges, ${result.inferred_edges || 0} inferred edges.`, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus('admin-status', error.message, false);
+  }
+}
+
+async function runReanalyzeAdmin() {
+  switchWorkspace('tools');
+  setStatus('admin-status', 'Starting corpus reanalyze…', true);
+  try {
+    reanalyzeState = await api('/ai/reanalyze', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({max_sources:0})});
+    renderAdminPanel();
+    setStatus('admin-status', 'AI reanalyze started.', true);
+  } catch (error) {
+    setStatus('admin-status', error.message, false);
+  }
+}
+
+function schedulePersistLayout() {
+  if (layoutSaveTimer) clearTimeout(layoutSaveTimer);
+  layoutSaveTimer = setTimeout(() => {
+    api('/graph/layout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({positions}),
+    }).catch(() => {});
+  }, 300);
+}
+
+async function renderObservability() {
+  const mount = document.getElementById('observability');
+  if (!mount) return;
+  mount.innerHTML = '<div class="muted">Loading retrieval analytics…</div>';
+  try {
+    const analytics = await api('/analytics/retrieval');
+    const top = analytics.top_notes || [];
+    const cold = analytics.cold_notes || [];
+    const recent = analytics.recent_queries || [];
+    mount.innerHTML = '';
+    const stats = document.createElement('div');
+    stats.className = 'meta';
+    stats.innerHTML = `
+      <span class="badge">${top.length} hot notes</span>
+      <span class="badge">${cold.length} cold notes</span>
+      <span class="badge">${recent.length} recent traces</span>
+    `;
+    mount.appendChild(stats);
+    top.slice(0, 4).forEach(node => {
+      const button = document.createElement('button');
+      button.className = 'btn secondary small';
+      button.textContent = `${shortName(node.source)} • q${node.query_count || 0}/r${node.retrieve_count || 0}`;
+      button.onclick = () => selectSource(node.source, true);
+      mount.appendChild(button);
+    });
+    recent.slice(0, 2).forEach(event => {
+      const card = document.createElement('div');
+      card.className = 'source';
+      card.innerHTML = `
+        <div class="source-title">${escapeHtml(event.type || 'query')}</div>
+        <div class="source-summary">${escapeHtml(event.query || '')}</div>
+        <div class="meta"><span class="badge">${escapeHtml(event.at || '')}</span></div>
+      `;
+      mount.appendChild(card);
+    });
+  } catch (_error) {
+    mount.innerHTML = '<div class="muted">Retrieval analytics unavailable.</div>';
+  }
+}
+
+function ensurePositions() {
+  sourceRecords.forEach((node, idx) => {
+    if (!positions[node.source]) {
+      positions[node.source] = {
+        x: 110 + (idx % 7) * 300,
+        y: 110 + Math.floor(idx / 7) * 180,
+      };
+    }
+  });
+}
+
+function sanitizePositions() {
+  let changed = false;
+  sourceRecords.forEach((node, idx) => {
+    const pos = positions[node.source];
+    if (!pos) return;
+    const x = Number(pos.x);
+    const y = Number(pos.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > 50000 || Math.abs(y) > 50000) {
+      positions[node.source] = {
+        x: 110 + (idx % 7) * 300,
+        y: 110 + Math.floor(idx / 7) * 180,
+      };
+      changed = true;
+    }
+  });
+  if (changed) schedulePersistLayout();
+}
+
+function normalizePositions() {
+  if (!sourceRecords.length) return;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  sourceRecords.forEach(node => {
+    const pos = positions[node.source];
+    if (!pos) return;
+    minX = Math.min(minX, pos.x);
+    minY = Math.min(minY, pos.y);
+    maxX = Math.max(maxX, pos.x);
+    maxY = Math.max(maxY, pos.y);
+  });
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) return;
+  const width = Math.max(200, maxX - minX);
+  const height = Math.max(200, maxY - minY);
+  const dx = BOARD_WIDTH / 2 - (minX + width / 2);
+  const dy = BOARD_HEIGHT / 2 - (minY + height / 2);
+  if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+  sourceRecords.forEach(node => {
+    const pos = positions[node.source];
+    if (!pos) return;
+    pos.x += dx;
+    pos.y += dy;
+  });
+}
+
+function applyScopeChange() {
+  renderSourceList();
+  renderCanvas();
+  if (currentScope() === 'local') fitBoard();
+}
+
+function applyLayout(mode, withSettle = true) {
+  const nodes = currentVisibleNodes();
+  if (!nodes.length) return;
+  if (mode === 'links') {
+    nodes.sort((a, b) => (b.outbound_count + b.backlink_count) - (a.outbound_count + a.backlink_count)).forEach((node, idx) => {
+      const angle = idx * 0.55;
+      const radius = 120 + idx * 24;
+      positions[node.source] = {
+        x: BOARD_WIDTH / 2 + Math.cos(angle) * radius,
+        y: BOARD_HEIGHT / 2 + Math.sin(angle) * radius,
+      };
+    });
+  } else {
+    const key = mode === 'namespace' ? 'namespace' : 'smart_collection';
+    const groups = {};
+    nodes.forEach(node => {
+      const group = node[key] || 'general';
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(node);
+    });
+    Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])).forEach(([group, items], gidx) => {
+      items.forEach((node, idx) => {
+        positions[node.source] = {
+          x: 100 + (gidx % 4) * 650 + (idx % 2) * 250,
+          y: 130 + Math.floor(gidx / 4) * 520 + Math.floor(idx / 2) * 150,
+        };
+      });
+    });
+  }
+  if (withSettle) {
+    settleGraph();
+  } else {
+    renderCanvas();
+  }
+  schedulePersistLayout();
+}
+
+async function settleGraph(iterations = 36) {
+  const nodes = currentVisibleNodes();
+  if (!nodes.length) return;
+  const visible = new Set(nodes.map(node => node.source));
+  const edges = (graph.edges || []).filter(edge => visible.has(edge.source) && visible.has(edge.target));
+  const velocities = new Map(nodes.map(node => [node.source, {x: 0, y: 0}]));
+  const centers = new Map();
+  const mode = document.getElementById('layout-mode').value;
+  const groupKey = mode === 'collection' ? 'smart_collection' : (mode === 'namespace' ? 'namespace' : '');
+  if (groupKey) {
+    const groups = [...new Set(nodes.map(node => node[groupKey] || 'general'))].sort();
+    groups.forEach((group, idx) => {
+      centers.set(group, {
+        x: 180 + (idx % 4) * 620 + 180,
+        y: 180 + Math.floor(idx / 4) * 420 + 180,
+      });
+    });
+  }
+  for (let step = 0; step < iterations; step += 1) {
+    nodes.forEach((node, idx) => {
+      const pos = positions[node.source];
+      const vel = velocities.get(node.source);
+      if (!pos || !vel) return;
+      const samples = Math.min(8, nodes.length - 1);
+      for (let s = 0; s < samples; s += 1) {
+        const other = nodes[(idx + s * 13 + step * 7) % nodes.length];
+        if (!other || other.source === node.source) continue;
+        const otherPos = positions[other.source];
+        const dx = pos.x - otherPos.x;
+        const dy = pos.y - otherPos.y;
+        const distSq = Math.max(90, dx * dx + dy * dy);
+        const force = 1800 / distSq;
+        vel.x += (dx / Math.sqrt(distSq)) * force;
+        vel.y += (dy / Math.sqrt(distSq)) * force;
+      }
+      if (groupKey) {
+        const center = centers.get(node[groupKey] || 'general');
+        vel.x += (center.x - pos.x) * 0.0009;
+        vel.y += (center.y - pos.y) * 0.0009;
+      } else {
+        vel.x += (BOARD_WIDTH / 2 - pos.x) * 0.00025;
+        vel.y += (BOARD_HEIGHT / 2 - pos.y) * 0.00025;
+      }
+    });
+    edges.forEach(edge => {
+      const from = positions[edge.source];
+      const to = positions[edge.target];
+      const fromVel = velocities.get(edge.source);
+      const toVel = velocities.get(edge.target);
+      if (!from || !to || !fromVel || !toVel) return;
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const dist = Math.max(1, Math.hypot(dx, dy));
+      const target = edge.kind === 'inferred' ? 120 : 92;
+      const force = (dist - target) * 0.0026;
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      fromVel.x += fx;
+      fromVel.y += fy;
+      toVel.x -= fx;
+      toVel.y -= fy;
+    });
+    nodes.forEach(node => {
+      const pos = positions[node.source];
+      const vel = velocities.get(node.source);
+      if (!pos || !vel) return;
+      vel.x *= 0.82;
+      vel.y *= 0.82;
+      pos.x = Math.max(30, Math.min(BOARD_WIDTH - 30, pos.x + vel.x * 14));
+      pos.y = Math.max(30, Math.min(BOARD_HEIGHT - 30, pos.y + vel.y * 14));
+    });
+    if (step % 6 === 0) {
+      renderCanvas();
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }
+  }
+  renderCanvas();
+  schedulePersistLayout();
+}
+
+function setZoom(value) {
+  const shell = document.getElementById('canvas-shell');
+  const centerX = (shell.scrollLeft + shell.clientWidth / 2) / Math.max(zoom, 0.001);
+  const centerY = (shell.scrollTop + shell.clientHeight / 2) / Math.max(zoom, 0.001);
+  zoom = Number(value);
+  document.getElementById('board').style.transform = `scale(${zoom})`;
+  shell.scrollLeft = Math.max(0, centerX * zoom - shell.clientWidth / 2);
+  shell.scrollTop = Math.max(0, centerY * zoom - shell.clientHeight / 2);
+}
+
+function graphExtent(nodes = currentVisibleNodes()) {
+  if (!nodes.length) {
+    return {minX: 0, minY: 0, maxX: BOARD_WIDTH, maxY: BOARD_HEIGHT};
+  }
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  nodes.forEach(node => {
+    const pos = positions[node.source];
+    if (!pos) return;
+    const radius = nodeRadius(node);
+    minX = Math.min(minX, pos.x - 40);
+    minY = Math.min(minY, pos.y - 40);
+    maxX = Math.max(maxX, pos.x + radius * 2 + 40);
+    maxY = Math.max(maxY, pos.y + radius * 2 + 64);
+  });
+  if (!Number.isFinite(minX)) {
+    return {minX: 0, minY: 0, maxX: BOARD_WIDTH, maxY: BOARD_HEIGHT};
+  }
+  return {minX, minY, maxX, maxY};
+}
+
+function fitBoard() {
+  const shell = document.getElementById('canvas-shell');
+  const extent = graphExtent();
+  const width = Math.max(240, extent.maxX - extent.minX);
+  const height = Math.max(240, extent.maxY - extent.minY);
+  const targetZoom = Math.max(0.28, Math.min(1.4, Math.min(shell.clientWidth / width, shell.clientHeight / height) * 0.92));
+  document.getElementById('zoom-range').value = String(targetZoom);
+  zoom = targetZoom;
+  document.getElementById('board').style.transform = `scale(${zoom})`;
+  const centerX = (extent.minX + extent.maxX) / 2;
+  const centerY = (extent.minY + extent.maxY) / 2;
+  shell.scrollTo({
+    left: Math.max(0, centerX * zoom - shell.clientWidth / 2),
+    top: Math.max(0, centerY * zoom - shell.clientHeight / 2),
+    behavior: 'smooth'
+  });
+}
+
+function renderCanvas() {
+  const nodeLayer = document.getElementById('node-layer');
+  const edgeLayer = document.getElementById('edge-layer');
+  const visibleNodes = currentVisibleNodes();
+  const visible = filteredSet();
+  const renderedSet = new Set(visibleNodes.map(node => node.source));
+  const focus = currentFocusSet();
+  const scopeLocal = currentScope() === 'local';
+  const detail = currentGraphDetail();
+  const allowEdges = detail === 'full' || visibleNodes.length <= 900;
+  nodeLayer.innerHTML = '';
+  edgeLayer.innerHTML = '';
+  edgeLayer.setAttribute('viewBox', `0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`);
+
+  if (allowEdges) graph.edges.forEach(edge => {
+    if (scopeLocal) {
+      if (!renderedSet.has(edge.source) || !renderedSet.has(edge.target)) return;
+    } else if (!visible.has(edge.source) || !visible.has(edge.target)) {
+      return;
+    }
+    const from = positions[edge.source];
+    const to = positions[edge.target];
+    if (!from || !to) return;
+    const fromNode = sourceIndex.get(edge.source);
+    const toNode = sourceIndex.get(edge.target);
+    const fromRadius = nodeRadius(fromNode || {});
+    const toRadius = nodeRadius(toNode || {});
+    const focusedEdge = !focus || (focus.has(edge.source) && focus.has(edge.target));
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', from.x + fromRadius);
+    line.setAttribute('y1', from.y + fromRadius);
+    line.setAttribute('x2', to.x + toRadius);
+    line.setAttribute('y2', to.y + toRadius);
+    line.setAttribute('class', 'edge ' + (edge.kind || 'explicit') + ((activeSource === edge.source || activeSource === edge.target) ? ' active' : '') + ((!scopeLocal && focus && !focusedEdge) ? ' dim' : ''));
+    edgeLayer.appendChild(line);
+  });
+
+  visibleNodes.forEach(node => {
+    const pos = positions[node.source] || {x: 60, y: 60};
+    const radius = nodeRadius(node);
+    const hue = nodeHue(node);
+    const dim = focus && currentScope() === 'global' && !focus.has(node.source);
+    const showLabel = zoom >= (detail === 'full' ? 0.72 : 0.9) || node.source === activeSource || !!node.pinned || currentScope() === 'local';
+    const card = document.createElement('div');
+    card.className = 'node' + (node.source === activeSource ? ' active' : '') + (dim ? ' dim' : '');
+    card.style.left = `${pos.x}px`;
+    card.style.top = `${pos.y}px`;
+    card.style.width = `${radius * 2}px`;
+    card.style.height = `${radius * 2}px`;
+    card.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,.44), hsla(${hue}, 88%, 68%, .92))`;
+    card.style.boxShadow = `0 0 0 1px rgba(255,255,255,.06), 0 0 18px hsla(${hue}, 88%, 68%, .28)`;
+    card.onmousedown = event => startDrag(event, node.source);
+    card.onmouseenter = event => showPreview(node, event);
+    card.onmousemove = event => movePreview(event);
+    card.onmouseleave = () => hidePreview(node.source);
+    card.onclick = event => {
+      event.stopPropagation();
+      selectSource(node.source, false);
+    };
+    card.ondblclick = () => selectSource(node.source, true);
+    if (showLabel) {
+      card.innerHTML = `
+        <div class="node-label">${escapeHtml(node.title || shortName(node.source))}</div>
+      `;
+    }
+    nodeLayer.appendChild(card);
+  });
+}
+
+function startDrag(event, source) {
+  if (event.button !== 0) return;
+  hidePreview();
+  dragging = {
+    source,
+    startX: event.clientX,
+    startY: event.clientY,
+    originX: positions[source].x,
+    originY: positions[source].y,
+  };
+  document.body.style.cursor = 'grabbing';
+}
+
+window.addEventListener('mousemove', event => {
+  if (!dragging) return;
+  positions[dragging.source] = {
+    x: dragging.originX + (event.clientX - dragging.startX) / zoom,
+    y: dragging.originY + (event.clientY - dragging.startY) / zoom,
+  };
+  renderCanvas();
+});
+
+window.addEventListener('mouseup', () => {
+  if (dragging) schedulePersistLayout();
+  dragging = null;
+  panning = null;
+  document.body.style.cursor = '';
+  const shell = document.getElementById('canvas-shell');
+  if (shell) shell.style.cursor = '';
+});
+
+// Pan: middle-mouse drag anywhere, or left-mouse drag on empty board space
+document.addEventListener('DOMContentLoaded', () => {
+  const shell = document.getElementById('canvas-shell');
+  if (!shell) return;
+
+  shell.addEventListener('mousedown', event => {
+    const isMiddle = event.button === 1;
+    const isLeft   = event.button === 0;
+    const onCard   = event.target.closest('.node');
+    if (!isMiddle && !(isLeft && !onCard)) return;
+    event.preventDefault();
+    panning = {startX: event.clientX, startY: event.clientY,
+               originLeft: shell.scrollLeft, originTop: shell.scrollTop};
+    shell.style.cursor = 'grabbing';
+    document.body.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mousemove', event => {
+    if (!panning) return;
+    shell.scrollLeft = panning.originLeft - (event.clientX - panning.startX);
+    shell.scrollTop  = panning.originTop  - (event.clientY - panning.startY);
+  });
+});
+
+async function selectSource(source, center) {
+  activeSource = source;
+  renderSourceList();
+  renderCanvas();
+  await openSource(source);
+  if (center) centerSource(source);
+  if (window.innerWidth <= 1400) toggleRightRail(true);
+}
+
+function centerSource(source) {
+  const shell = document.getElementById('canvas-shell');
+  const pos = positions[source];
+  if (!pos) return;
+  const node = sourceIndex.get(source);
+  const radius = nodeRadius(node || {});
+  shell.scrollTo({left: Math.max(0, pos.x * zoom - shell.clientWidth / 2 + radius), top: Math.max(0, pos.y * zoom - shell.clientHeight / 2 + radius), behavior: 'smooth'});
+}
+
+function clearSelection() {
+  activeSource = '';
+  activeDetail = null;
+  hidePreview();
+  renderSourceList();
+  renderCanvas();
+  renderDetail();
+  renderWritePanel();
+  renderSynthesisInputs();
+}
+
+async function openSource(source) {
+  activeDetail = await api('/sources/' + encodeURIComponent(source));
+  switchWorkspace('note');
+  renderDetail();
+  renderWritePanel();
+  renderSynthesisInputs();
+}
+
+function appendChipSection(mount, title, items, clickable = false, semantic = false) {
+  if (!items.length) return;
+  const section = document.createElement('div');
+  section.className = 'detail';
+  const h = document.createElement('h3');
+  h.style.margin = '0 0 10px';
+  h.textContent = title;
+  const row = document.createElement('div');
+  row.className = 'tags';
+  items.forEach(item => {
+    const linkSource = typeof item === 'object' ? (item.target || item.source || '') : item;
+    if (clickable) {
+      const button = document.createElement('button');
+      button.className = 'btn secondary small';
+      button.textContent = semantic && typeof item === 'object'
+        ? `${shortName(linkSource)} (${Number(item.weight || 0).toFixed(2)})`
+        : shortName(linkSource);
+      button.onclick = () => selectSource(linkSource, true);
+      row.appendChild(button);
+    } else {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = typeof item === 'object' ? JSON.stringify(item) : item;
+      row.appendChild(badge);
+    }
+  });
+  section.append(h, row);
+  mount.appendChild(section);
+}
+
+function selectWithOptions(id, options, value) {
+  const select = document.createElement('select');
+  select.id = id;
+  options.forEach(option => {
+    const opt = document.createElement('option');
+    opt.value = option;
+    opt.textContent = option;
+    select.appendChild(opt);
+  });
+  select.value = value || options[0];
+  return select;
+}
+
+function renderCurationPanel(mount, detail) {
+  const section = document.createElement('div');
+  section.className = 'detail';
+  const title = document.createElement('h3');
+  title.style.margin = '0 0 10px';
+  title.textContent = 'Curation';
+  const status = selectWithOptions('curate-status', ['inbox', 'active', 'trusted', 'stale', 'archived'], detail.curation_status || 'inbox');
+  const trust = selectWithOptions('curate-trust', ['unreviewed', 'trusted', 'questionable'], detail.trust_level || 'unreviewed');
+  const note = document.createElement('input');
+  note.id = 'curate-review-note';
+  note.type = 'text';
+  note.placeholder = 'review note';
+  note.value = detail.review_note || '';
+  const pinnedLabel = document.createElement('label');
+  pinnedLabel.className = 'badge';
+  const pinned = document.createElement('input');
+  pinned.id = 'curate-pinned';
+  pinned.type = 'checkbox';
+  pinned.checked = !!detail.pinned;
+  pinnedLabel.append(pinned, document.createTextNode(' pinned'));
+  const save = document.createElement('button');
+  save.className = 'btn secondary small';
+  save.textContent = 'Save Curation';
+  save.onclick = () => saveSourceCuration();
+  const row = document.createElement('div');
+  row.className = 'stack';
+  row.append(status, trust, note, pinnedLabel, save);
+  section.append(title, row);
+  mount.appendChild(section);
+}
+
+function renderDetail() {
+  const mount = document.getElementById('detail-body');
+  if (!activeDetail) {
+    mount.innerHTML = '<div class="muted">Select a note from the canvas or left rail.</div>';
+    return;
+  }
+  const detail = activeDetail;
+  mount.innerHTML = '';
+  const summary = document.createElement('div');
+  summary.className = 'detail';
+  const summaryStack = document.createElement('div');
+  summaryStack.className = 'stack';
+  const titleWrap = document.createElement('div');
+  const title = document.createElement('h3');
+  title.style.margin = '0 0 8px';
+  title.textContent = detail.title || shortName(detail.source);
+  const sourceLine = document.createElement('div');
+  sourceLine.className = 'muted';
+  sourceLine.textContent = detail.source || '';
+  titleWrap.append(title, sourceLine);
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  [detail.type || 'text', detail.smart_collection || 'general', `${detail.chunk_count} chunks`].forEach(text => {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = text;
+    meta.appendChild(badge);
+  });
+  if (detail.pinned) {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = 'pinned';
+    meta.appendChild(badge);
+  }
+  if (detail.template_name) {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = detail.template_name;
+    meta.appendChild(badge);
+  }
+  [detail.curation_status || 'inbox', detail.trust_level || 'unreviewed'].forEach(text => {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = text;
+    meta.appendChild(badge);
+  });
+  const summaryText = document.createElement('div');
+  summaryText.textContent = detail.summary || '';
+  summaryStack.append(titleWrap, meta, summaryText);
+  summary.appendChild(summaryStack);
+  mount.appendChild(summary);
+
+  const activity = document.createElement('div');
+  activity.className = 'detail';
+  const activityTitle = document.createElement('h3');
+  activityTitle.style.margin = '0 0 10px';
+  activityTitle.textContent = 'Activity';
+  const activityMeta = document.createElement('div');
+  activityMeta.className = 'meta';
+  [
+    `${detail.query_count || 0} queries`,
+    `${detail.retrieve_count || 0} retrievals`,
+    `${detail.synthesis_count || 0} syntheses`,
+    `${detail.ingest_count || 0} ingests`,
+  ].forEach(text => {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = text;
+    activityMeta.appendChild(badge);
+  });
+  if (detail.last_activity_at) {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = `last ${detail.last_activity_at}`;
+    activityMeta.appendChild(badge);
+  }
+  activity.append(activityTitle, activityMeta);
+  mount.appendChild(activity);
+  renderCurationPanel(mount, detail);
+
+  if (noteDetailMode === 'overview') {
+    appendChipSection(mount, 'Tags', (detail.tags || []).map(tag => '#' + tag));
+    appendChipSection(mount, 'Entities', detail.entities || []);
+    appendChipSection(mount, 'Backlinks', (detail.backlinks || []).slice(0, 8), true);
+    appendChipSection(mount, 'Links from this note', (detail.outbound_links || []).slice(0, 8), true);
+    appendChipSection(mount, 'Semantic links', (detail.semantic_links || []).slice(0, 6), true, true);
+    if (detail.article) {
+      const article = document.createElement('div');
+      article.className = 'detail';
+      const h3 = document.createElement('h3');
+      h3.style.margin = '0 0 10px';
+      h3.textContent = 'Knowledge Base Article';
+      const pre = document.createElement('pre');
+      pre.textContent = detail.article.slice(0, 2200) + (detail.article.length > 2200 ? '\\n\\n[Truncated in overview. Open Details for full article.]' : '');
+      article.append(h3, pre);
+      mount.appendChild(article);
+    }
+    const hint = document.createElement('div');
+    hint.className = 'detail';
+    const h3 = document.createElement('h3');
+    h3.style.margin = '0 0 10px';
+    h3.textContent = 'Next actions';
+    const list = document.createElement('div');
+    list.className = 'mini-list';
+    [
+      ['Ask this note', () => switchWorkspace('ask')],
+      ['Edit or extend this note', () => switchWorkspace('write')],
+      ['Synthesize from this note', () => switchWorkspace('synthesis')],
+      ['Open deep details', () => switchNoteMode('details')],
+    ].forEach(([label, handler]) => {
+      const button = document.createElement('button');
+      button.className = 'btn secondary small';
+      button.textContent = label;
+      button.onclick = handler;
+      list.appendChild(button);
+    });
+    hint.append(h3, list);
+    mount.appendChild(hint);
+    return;
+  }
+
+  appendChipSection(mount, 'Tags', (detail.tags || []).map(tag => '#' + tag));
+  appendChipSection(mount, 'Aliases', detail.aliases || []);
+  appendChipSection(mount, 'Entities', detail.entities || []);
+  appendChipSection(mount, 'Direct links', detail.explicit_links || [], true);
+  appendChipSection(mount, 'Manual links', detail.manual_links || [], true);
+  appendChipSection(mount, 'Reconstructed links', detail.inferred_links || [], true);
+  appendChipSection(mount, 'Semantic links', detail.semantic_links || [], true, true);
+  appendChipSection(mount, 'Links from this note', detail.outbound_links || [], true);
+  appendChipSection(mount, 'Backlinks', detail.backlinks || [], true);
+  appendChipSection(mount, 'Unresolved links', detail.unresolved_links || []);
+  appendChipSection(mount, 'Related sources', detail.related_sources || [], true);
+
+  if (detail.article) {
+    const article = document.createElement('div');
+    article.className = 'detail';
+    const h3 = document.createElement('h3');
+    h3.style.margin = '0 0 10px';
+    h3.textContent = 'Knowledge Base Article';
+    const pre = document.createElement('pre');
+    pre.textContent = detail.article;
+    article.append(h3, pre);
+    mount.appendChild(article);
+  }
+
+  renderLocalGraphPanel(mount, detail);
+  renderPathfinderPanel(mount, detail);
+
+  detail.chunks.slice(0, 5).forEach((chunk, idx) => {
+    const section = document.createElement('div');
+    section.className = 'detail';
+    section.innerHTML = `<h3 style="margin:0 0 10px">Chunk ${idx + 1}</h3><pre>${escapeHtml(chunk.text)}</pre>`;
+    mount.appendChild(section);
+  });
+}
+
+function renderWritePanel() {
+  const mount = document.getElementById('write-edit-body');
+  if (!mount) return;
+  if (!activeDetail) {
+    mount.innerHTML = '<div class="muted">Select a note to edit it here.</div>';
+    return;
+  }
+  const detail = activeDetail;
+  if (!((detail.namespace || '') === 'notes' || String(detail.source || '').endsWith('.md') || String(detail.source || '').startsWith('brain/'))) {
+    mount.innerHTML = '<div class="muted">This source is readable here, but only note-like sources can be edited in-place.</div>';
+    return;
+  }
+  mount.innerHTML = '';
+  const h3 = document.createElement('h3');
+  h3.textContent = 'Edit Note';
+  const stack = document.createElement('div');
+  stack.className = 'stack';
+  const title = document.createElement('input');
+  title.id = 'edit-note-title';
+  title.type = 'text';
+  title.placeholder = 'Note title';
+  title.value = detail.title || '';
+  const source = document.createElement('input');
+  source.id = 'edit-note-source';
+  source.type = 'text';
+  source.placeholder = 'Note source';
+  source.value = detail.source || '';
+  const tags = document.createElement('input');
+  tags.id = 'edit-note-tags';
+  tags.type = 'text';
+  tags.placeholder = 'tag1, tag2';
+  tags.value = (detail.tags || []).join(', ');
+  const aliases = document.createElement('input');
+  aliases.id = 'edit-note-aliases';
+  aliases.type = 'text';
+  aliases.placeholder = 'alias1, alias2';
+  aliases.value = (detail.aliases || []).join(', ');
+  const links = document.createElement('input');
+  links.id = 'edit-note-links';
+  links.type = 'text';
+  links.placeholder = 'manual link targets';
+  links.value = (detail.manual_links || []).join(', ');
+  const template = document.createElement('input');
+  template.id = 'edit-note-template';
+  template.type = 'text';
+  template.placeholder = 'template name';
+  template.value = detail.template_name || '';
+  const curationStatus = selectWithOptions('edit-note-curation-status', ['inbox', 'active', 'trusted', 'stale', 'archived'], detail.curation_status || 'inbox');
+  const trustLevel = selectWithOptions('edit-note-trust-level', ['unreviewed', 'trusted', 'questionable'], detail.trust_level || 'unreviewed');
+  const reviewNote = document.createElement('input');
+  reviewNote.id = 'edit-note-review-note';
+  reviewNote.type = 'text';
+  reviewNote.placeholder = 'review note';
+  reviewNote.value = detail.review_note || '';
+  const pinnedLabel = document.createElement('label');
+  pinnedLabel.className = 'badge';
+  const pinned = document.createElement('input');
+  pinned.id = 'edit-note-pinned';
+  pinned.type = 'checkbox';
+  pinned.checked = !!detail.pinned;
+  pinnedLabel.append(pinned, document.createTextNode(' pinned'));
+  const body = document.createElement('textarea');
+  body.id = 'edit-note-body';
+  body.placeholder = 'Note body';
+  body.value = detail.full_text || '';
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  const save = document.createElement('button');
+  save.className = 'btn primary';
+  save.textContent = 'Save Note';
+  save.onclick = () => saveActiveNote();
+  actions.appendChild(save);
+  stack.append(title, source, tags, aliases, links, template, curationStatus, trustLevel, reviewNote, pinnedLabel, body, actions);
+  mount.append(h3, stack);
+}
+
+function renderSynthesisInputs() {
+  const extra = document.getElementById('synth-extra');
+  const mode = document.getElementById('synth-mode').value;
+  extra.innerHTML = '';
+  if (mode === 'collection') {
+    const select = document.createElement('select');
+    select.id = 'synth-collection-select';
+    select.innerHTML = '<option value="">Select a smart collection</option>';
+    smartCollections.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.smart_collection;
+      opt.textContent = `${item.smart_collection} (${item.source_count})`;
+      if (activeDetail && activeDetail.smart_collection === item.smart_collection) opt.selected = true;
+      select.appendChild(opt);
+    });
+    const limit = document.createElement('input');
+    limit.id = 'synth-collection-max';
+    limit.type = 'number';
+    limit.min = '1';
+    limit.max = '20';
+    limit.value = '6';
+    extra.append(select, limit);
+  } else if (mode === 'compare' || mode === 'changes') {
+    const first = document.createElement('select');
+    const second = document.createElement('select');
+    first.id = 'synth-source-a';
+    second.id = 'synth-source-b';
+    first.innerHTML = '<option value="">Select first note</option>';
+    second.innerHTML = '<option value="">Select second note</option>';
+    sourceRecords.forEach(node => {
+      const a = document.createElement('option');
+      const b = document.createElement('option');
+      a.value = b.value = node.source;
+      a.textContent = b.textContent = node.title || shortName(node.source);
+      first.appendChild(a);
+      second.appendChild(b);
+    });
+    if (activeDetail) first.value = activeDetail.source;
+    extra.append(first, second);
+  } else {
+    const note = document.createElement('div');
+    note.className = 'muted';
+    note.textContent = activeDetail ? `Selected note: ${activeDetail.title || shortName(activeDetail.source)}` : 'Select a note to synthesize.';
+    extra.appendChild(note);
+  }
+}
+
+function renderSynthesisResult(result) {
+  const out = document.getElementById('synth-output');
+  out.innerHTML = '';
+  const title = document.createElement('h3');
+  title.style.margin = '0 0 10px';
+  title.textContent = result.title;
+  const meta = document.createElement('div');
+  meta.className = 'tags';
+  (result.sources || []).forEach(source => {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = shortName(source);
+    meta.appendChild(badge);
+  });
+  if (result.smart_collection) {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = 'Collection: ' + result.smart_collection;
+    meta.appendChild(badge);
+  }
+  const pre = document.createElement('pre');
+  pre.textContent = result.output || '';
+  out.append(title, meta, pre);
+}
+
+function renderUIUXAgentResult(result) {
+  lastUIUXAgentResult = result;
+  const out = document.getElementById('uiux-output');
+  out.innerHTML = '';
+  const summary = document.createElement('div');
+  summary.className = 'detail';
+  summary.innerHTML = `<h3 style="margin:0 0 10px">Assessment</h3><pre>${escapeHtml(result.summary || '')}</pre>`;
+  out.appendChild(summary);
+  [
+    ['Top issues', result.top_issues || []],
+    ['Quick wins', result.quick_wins || []],
+    ['Structural changes', result.structural_changes || []],
+    ['Implementation notes', result.implementation_notes || []],
+  ].forEach(([title, items]) => {
+    if (!items.length) return;
+    const section = document.createElement('div');
+    section.className = 'detail';
+    section.innerHTML = `<h3 style="margin:0 0 10px">${escapeHtml(title)}</h3>`;
+    const list = document.createElement('div');
+    list.className = 'stack';
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'message assistant';
+      row.textContent = item;
+      list.appendChild(row);
+    });
+    section.appendChild(list);
+    out.appendChild(section);
+  });
+  if (result.prompt) {
+    const prompt = document.createElement('div');
+    prompt.className = 'detail';
+    prompt.innerHTML = `<h3 style="margin:0 0 10px">Build prompt</h3><pre>${escapeHtml(result.prompt)}</pre>`;
+    out.appendChild(prompt);
+  }
+}
+
+async function runUIUXAgent() {
+  const goal = document.getElementById('uiux-goal').value.trim();
+  const pain_points = document.getElementById('uiux-pain').value.trim();
+  const focus = document.getElementById('uiux-focus').value;
+  switchWorkspace('tools');
+  setStatus('uiux-status', 'Running frontend agent…', true);
+  try {
+    const result = await api('/agent/uiux', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        goal,
+        pain_points,
+        focus,
+        selected_source: activeDetail ? activeDetail.source : null,
+        current_path: window.location.pathname,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+      }),
+    });
+    renderUIUXAgentResult(result);
+    setStatus('uiux-status', 'Frontend agent complete.', true);
+  } catch (error) {
+    setStatus('uiux-status', error.message, false);
+  }
+}
+
+async function saveUIUXAgentNote() {
+  if (!lastUIUXAgentResult) {
+    setStatus('uiux-status', 'Run the frontend agent first.', false);
+    return;
+  }
+  switchWorkspace('tools');
+  const today = new Date().toISOString().slice(0, 10);
+  const stamp = new Date().toISOString().slice(11, 19).replaceAll(':', '-');
+  const title = `UIUX Agent Plan ${today}`;
+  const markdown = [
+    `# ${title}`,
+    '',
+    '## Summary',
+    lastUIUXAgentResult.summary || '',
+    '',
+    '## Top issues',
+    ...(lastUIUXAgentResult.top_issues || []).map(item => `- ${item}`),
+    '',
+    '## Quick wins',
+    ...(lastUIUXAgentResult.quick_wins || []).map(item => `- ${item}`),
+    '',
+    '## Structural changes',
+    ...(lastUIUXAgentResult.structural_changes || []).map(item => `- ${item}`),
+    '',
+    '## Implementation notes',
+    ...(lastUIUXAgentResult.implementation_notes || []).map(item => `- ${item}`),
+    '',
+    '## Build prompt',
+    lastUIUXAgentResult.prompt || '',
+  ].join('\\n').trim();
+  const source = `brain/uiux-agent-plan-${today}-${stamp}.md`;
+  setStatus('uiux-status', 'Saving UIUX plan note…', true);
+  try {
+    await api('/ingest/text', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        text: markdown,
+        source,
+        tags: ['uiux', 'frontend', 'agent-plan'],
+        namespace: 'notes',
+      }),
+    });
+    setStatus('uiux-status', 'UIUX plan saved as a note.', true);
+    await refreshAll();
+    await selectSource(source, true);
+  } catch (error) {
+    setStatus('uiux-status', error.message, false);
+  }
+}
+
+async function runSynthesis() {
+  const mode = document.getElementById('synth-mode').value;
+  const instruction = document.getElementById('synth-instruction').value.trim() || null;
+  switchWorkspace('synthesis');
+  setStatus('synth-status', 'Running synthesis…', true);
+  try {
+    let result;
+    if (mode === 'source') {
+      if (!activeDetail) throw new Error('Select a note first');
+      result = await api('/synthesis/source', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({source: activeDetail.source, instruction})});
+    } else if (mode === 'collection') {
+      const smart_collection = document.getElementById('synth-collection-select').value;
+      const max_sources = Number(document.getElementById('synth-collection-max').value || 6);
+      result = await api('/synthesis/collection', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({smart_collection, max_sources, instruction})});
+    } else if (mode === 'compare') {
+      const a = document.getElementById('synth-source-a').value;
+      const b = document.getElementById('synth-source-b').value;
+      result = await api('/synthesis/compare', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sources:[a,b], instruction})});
+    } else {
+      const earlier_source = document.getElementById('synth-source-a').value;
+      const later_source = document.getElementById('synth-source-b').value;
+      result = await api('/synthesis/changes', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({earlier_source, later_source, instruction})});
+    }
+    renderSynthesisResult(result);
+    setStatus('synth-status', 'Synthesis complete.', true);
+  } catch (error) {
+    setStatus('synth-status', error.message, false);
+  }
+}
+
+function addMessage(role, content, sources=[]) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = 'message ' + role;
+  div.textContent = content;
+  if (sources.length) {
+    const row = document.createElement('div');
+    row.className = 'tags';
+    row.style.marginTop = '10px';
+    sources.forEach(src => {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = shortName(src);
+      row.appendChild(badge);
+    });
+    div.appendChild(row);
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  switchWorkspace('ask');
+  input.value = '';
+  addMessage('user', text);
+  history.push({role:'user', content:text});
+  const pending = addMessage('assistant', 'Thinking…');
+  try {
+    const result = await api('/query', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:text, history: history.slice(-10)})});
+    pending.remove();
+    addMessage('assistant', result.answer, result.sources || []);
+    history.push({role:'assistant', content:result.answer});
+  } catch (error) {
+    pending.textContent = error.message;
+  }
+}
+
+async function ingestText() {
+  const text = document.getElementById('txt-content').value.trim();
+  const source = document.getElementById('txt-source').value.trim() || 'atlas-note';
+  const tags = parseTags(document.getElementById('txt-tags').value.trim());
+  if (!text) return;
+  setStatus('ingest-status', 'Indexing note…', true);
+  try {
+    await api('/ingest/text', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text, source, tags})});
+    document.getElementById('txt-content').value = '';
+    setStatus('ingest-status', 'Text indexed.', true);
+    await refreshAll();
+  } catch (error) {
+    setStatus('ingest-status', error.message, false);
+  }
+}
+
+async function createBrainNote() {
+  const title = document.getElementById('note-title').value.trim();
+  const body = document.getElementById('txt-content').value.trim();
+  const tags = parseTags(document.getElementById('txt-tags').value.trim());
+  if (!title && !body) return;
+  const sourceInput = document.getElementById('txt-source').value.trim();
+  const source = sourceInput || `brain/${slugify(title || 'untitled-note')}.md`;
+  const text = title ? `# ${title}\n\n${body}`.trim() : body;
+  switchWorkspace('write');
+  setStatus('ingest-status', 'Creating note…', true);
+  try {
+    await api('/ingest/text', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({text, source, tags, namespace:'notes'})});
+    document.getElementById('note-title').value = '';
+    document.getElementById('txt-content').value = '';
+    document.getElementById('txt-source').value = '';
+    setStatus('ingest-status', 'Brain note created.', true);
+    await refreshAll();
+    await selectSource(source, true);
+  } catch (error) {
+    setStatus('ingest-status', error.message, false);
+  }
+}
+
+async function saveActiveNote() {
+  if (!activeDetail) return;
+  switchWorkspace('write');
+  const title = document.getElementById('edit-note-title')?.value.trim() || '';
+  const source = document.getElementById('edit-note-source')?.value.trim() || activeDetail.source;
+  const tags = parseTags(document.getElementById('edit-note-tags')?.value.trim() || '');
+  const aliases = parseTags(document.getElementById('edit-note-aliases')?.value.trim() || '');
+  const manual_links = parseTags(document.getElementById('edit-note-links')?.value.trim() || '');
+  const template_name = document.getElementById('edit-note-template')?.value.trim() || null;
+  const curation_status = document.getElementById('edit-note-curation-status')?.value || activeDetail.curation_status || 'inbox';
+  const trust_level = document.getElementById('edit-note-trust-level')?.value || activeDetail.trust_level || 'unreviewed';
+  const review_note = document.getElementById('edit-note-review-note')?.value.trim() || '';
+  const pinned = !!document.getElementById('edit-note-pinned')?.checked;
+  const text = document.getElementById('edit-note-body')?.value || '';
+  if (!text.trim()) return;
+  setStatus('ingest-status', 'Saving note…', true);
+  try {
+    const result = await api('/sources/update', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        source: activeDetail.source,
+        new_source: source,
+        title,
+        text,
+        tags,
+        aliases,
+        manual_links,
+        template_name,
+        curation_status,
+        trust_level,
+        review_note,
+        pinned,
+        namespace: activeDetail.namespace || 'notes',
+      }),
+    });
+    setStatus('ingest-status', 'Note saved.', true);
+    await refreshAll();
+    await selectSource(result.source, true);
+  } catch (error) {
+    setStatus('ingest-status', error.message, false);
+  }
+}
+
+async function saveSourceCuration() {
+  if (!activeDetail) return;
+  const curation_status = document.getElementById('curate-status')?.value || activeDetail.curation_status || 'inbox';
+  const trust_level = document.getElementById('curate-trust')?.value || activeDetail.trust_level || 'unreviewed';
+  const review_note = document.getElementById('curate-review-note')?.value.trim() || '';
+  const pinned = !!document.getElementById('curate-pinned')?.checked;
+  try {
+    await api('/sources/curate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        source: activeDetail.source,
+        aliases: activeDetail.aliases || [],
+        manual_links: activeDetail.manual_links || [],
+        template_name: activeDetail.template_name || null,
+        curation_status,
+        trust_level,
+        review_note,
+        pinned,
+      }),
+    });
+    await refreshAll();
+    await selectSource(activeDetail.source, false);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function ingestURL() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+  setStatus('ingest-status', 'Fetching URL…', true);
+  try {
+    await api('/ingest/url', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
+    document.getElementById('url-input').value = '';
+    setStatus('ingest-status', 'URL indexed.', true);
+    await refreshAll();
+  } catch (error) {
+    setStatus('ingest-status', error.message, false);
+  }
+}
+
+async function ingestFile(file) {
+  if (!file) return;
+  setStatus('ingest-status', `Uploading ${file.name}…`, true);
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    await api('/ingest/file', {method:'POST', body: fd});
+    setStatus('ingest-status', `${file.name} indexed.`, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus('ingest-status', error.message, false);
+  }
+}
+
+function handleFileDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('over');
+  const file = event.dataTransfer.files[0];
+  if (file) ingestFile(file);
+}
+
+async function ingestServerFolder() {
+  const path = document.getElementById('server-path').value.trim();
+  if (!path) return;
+  setStatus('ingest-status', 'Importing folder…', true);
+  try {
+    const result = await api('/ingest/folder', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path, recursive:true})});
+    setStatus('ingest-status', `Indexed ${result.files_indexed}/${result.files_found} files.`, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus('ingest-status', error.message, false);
+  }
+}
+
+async function resetCollection() {
+  if (!confirm('Delete all indexed points from the active collection?')) return;
+  switchWorkspace('tools');
+  await api('/admin/reset', {method:'DELETE'});
+  activeSource = '';
+  activeDetail = null;
+  history = [];
+  document.getElementById('chat-log').innerHTML = '<div class="message assistant">Collection reset complete.</div>';
+  renderDetail();
+  renderWritePanel();
+  renderSynthesisInputs();
+  await refreshAll();
+}
+
+async function refreshAll() {
+  await Promise.all([loadHealth(), loadLayout()]);
+  await loadGraph();
+  loadSavedViews().catch(() => {});
+  loadCollections().then(() => {
+    renderFilters();
+    renderSynthesisInputs();
+  }).catch(() => {});
+  Promise.all([loadConfigState(), loadDeepHealth(), loadReanalyzeState()]).then(() => {
+    renderAdminPanel();
+  }).catch(() => {});
+  renderObservability().catch(() => {});
+  renderWritePanel();
+}
+
+function focusAdminPanelIfNeeded() {
+  if (window.location.pathname !== '/admin') return;
+  switchWorkspace('tools');
+  const panel = document.getElementById('admin-panel');
+  if (panel) panel.scrollIntoView({behavior:'auto', block:'start'});
+}
+
+refreshAll().then(() => {
+  if (!Object.keys(positions || {}).length) {
+    applyLayout('collection', false);
+  }
+  renderCanvas();
+  fitBoard();
+  focusAdminPanelIfNeeded();
+}).catch(error => {
+  document.getElementById('detail-body').innerHTML = `<div class="muted">${String(error)}</div>`;
+});
+</script>
+</body>
+</html>
