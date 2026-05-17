@@ -4,6 +4,7 @@ set -u
 REPO="${NEMO_AUTOPUSH_REPO:-/home/cgandycl/Nemotron}"
 APP_REL="use-case-examples/RAG Agent with Nemotron RAG Models"
 REMOTE="${NEMO_AUTOPUSH_REMOTE:-origin}"
+PUSH_BRANCH="${NEMO_AUTOPUSH_PUSH_BRANCH:-mnemosyne-auto}"
 LOG_FILE="${NEMO_AUTOPUSH_LOG:-$HOME/.local/state/nemo-auto-git-push.log}"
 LOCK_FILE="${NEMO_AUTOPUSH_LOCK:-$HOME/.cache/nemo-auto-git-push.lock}"
 
@@ -40,6 +41,12 @@ if ! git remote get-url "$REMOTE" >/dev/null 2>&1; then
   exit 1
 fi
 
+git_dir="$(git rev-parse --git-dir)"
+if [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ] || [ -f "$git_dir/MERGE_HEAD" ]; then
+  log "merge or rebase in progress; skipping"
+  exit 1
+fi
+
 export GIT_AUTHOR_NAME="${GIT_AUTHOR_NAME:-Mnemosyne Auto Push}"
 export GIT_AUTHOR_EMAIL="${GIT_AUTHOR_EMAIL:-mnemosyne-auto-push@localhost}"
 export GIT_COMMITTER_NAME="${GIT_COMMITTER_NAME:-$GIT_AUTHOR_NAME}"
@@ -47,8 +54,7 @@ export GIT_COMMITTER_EMAIL="${GIT_COMMITTER_EMAIL:-$GIT_AUTHOR_EMAIL}"
 
 git update-index -q --refresh >/dev/null 2>&1 || true
 
-# Stage tracked edits/deletions, then add only source/UI files from the local RAG app.
-git add -u -- .
+# Stage only source/UI files from the local RAG app plus this automation script.
 
 safe_paths=(
   "scripts/nemo-auto-git-push.sh"
@@ -96,25 +102,16 @@ if ! git diff --cached --quiet; then
   fi
 fi
 
-ahead_count=0
-if git rev-parse --verify --quiet "$REMOTE/$BRANCH" >/dev/null; then
-  ahead_count="$(git rev-list --count "$REMOTE/$BRANCH..HEAD" 2>/dev/null || printf '0')"
-else
-  ahead_count="$committed"
-fi
+remote_sha="$(git ls-remote "$REMOTE" "refs/heads/$PUSH_BRANCH" 2>>"$LOG_FILE" | awk '{print $1}' || true)"
+local_sha="$(git rev-parse HEAD)"
 
-if [ "$committed" -eq 0 ] && [ "${ahead_count:-0}" -eq 0 ]; then
+if [ "$committed" -eq 0 ] && [ -n "$remote_sha" ] && [ "$remote_sha" = "$local_sha" ]; then
   log "no committed changes to push"
   exit 0
 fi
 
-if ! git pull --rebase --autostash "$REMOTE" "$BRANCH" >> "$LOG_FILE" 2>&1; then
-  log "pull --rebase failed"
-  exit 1
-fi
-
-if git push "$REMOTE" "HEAD:$BRANCH" >> "$LOG_FILE" 2>&1; then
-  log "pushed HEAD to $REMOTE/$BRANCH"
+if git push "$REMOTE" "HEAD:refs/heads/$PUSH_BRANCH" >> "$LOG_FILE" 2>&1; then
+  log "pushed HEAD to $REMOTE/$PUSH_BRANCH"
 else
   log "push failed"
   exit 1
