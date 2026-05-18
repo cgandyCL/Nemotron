@@ -3,7 +3,7 @@ set -u
 
 REPO="${NEMO_AUTOPUSH_REPO:-/home/cgandycl/Nemotron}"
 APP_REL="use-case-examples/RAG Agent with Nemotron RAG Models"
-REMOTE="${NEMO_AUTOPUSH_REMOTE:-origin}"
+REMOTE="${NEMO_AUTOPUSH_REMOTE:-autosave}"
 PUSH_BRANCH="${NEMO_AUTOPUSH_PUSH_BRANCH:-mnemosyne-auto}"
 LOG_FILE="${NEMO_AUTOPUSH_LOG:-$HOME/.local/state/nemo-auto-git-push.log}"
 LOCK_FILE="${NEMO_AUTOPUSH_LOCK:-$HOME/.cache/nemo-auto-git-push.lock}"
